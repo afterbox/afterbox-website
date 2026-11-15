@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+/*
+  afterbox design system: "Everyday", Ink blue
+  Story: warm paper by day (ground), deep ink blue for what's kept private (ink-deep),
+  soft haze where the two blend, near-black night for the footer. Light only.
+*/
+
+@theme {
+  /* Colour: neutrals */
+  --color-ground: #f7f5f0;        /* page background, warm off-white, never pure white */
+  --color-card: #fbfaf7;          /* cards and floating UI over photos */
+  --color-line: #e3e0d7;          /* hairlines, card borders */
+  --color-ink: #151a24;           /* body text and headlines on light */
+  --color-ink-soft: #4a5262;      /* secondary text on light (7:1 on ground) */
+
+  /* Colour: brand (Ink blue) */
+  --color-ink-deep: #1c2c50;      /* brand: buttons, security section */
+  --color-ink-deep-hover: #142040;
+  --color-panel: #26386a;         /* raised surface on ink-deep (key animation card) */
+  --color-dusk: #4a5f8f;          /* gradient mid-step between light and ink-deep */
+  --color-haze: #a9b5d2;          /* gradient step, light side */
+  --color-glass: #b9c4dc;         /* glows and icons on ink-deep; never body text on light */
+  --color-mist: #e1e5ef;          /* first light step of a fade */
+  --color-night: #0a1020;         /* footer */
+  --color-on-night: #eeeae2;      /* text on night, ink-deep and over video */
+  --color-on-night-soft: #a9b0c2; /* secondary text on night and ink-deep */
+
+  /* Colour: status (always with a word, never colour alone) */
+  --color-positive: #2c6a4e;
+  --color-warn: #8a4a12;
+  --color-alert: #a3313b;
+
+  /* Type: Host Grotesk only (loaded in layout.tsx) */
+  --font-sans: var(--font-host-grotesk), system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --text-display-xl: 5.5rem;      /* 88px hero */
+  --text-display-xl--line-height: 1;
+  --text-display-xl--letter-spacing: -0.04em;
+  --text-display-l: 4rem;         /* 64px section titles */
+  --text-display-l--line-height: 1.03;
+  --text-display-l--letter-spacing: -0.04em;
+  --text-display-m: 3.75rem;      /* 60px */
+  --text-display-m--line-height: 1.07;
+  --text-display-m--letter-spacing: -0.04em;
+  --text-display-s: 2.75rem;      /* 44px */
+  --text-display-s--line-height: 1.09;
+  --text-display-s--letter-spacing: -0.03em;
+  --text-lead: 1.3125rem;         /* 21px hero sub-line */
+  --text-lead--line-height: 1.48;
+  --text-body-l: 1.125rem;        /* 18px section copy */
+  --text-body-l--line-height: 1.5;
+
+  /* Radius */
+  --radius-card: 1.5rem;          /* 24px: media frames, cards */
+  --radius-panel: 1.125rem;       /* 18px: floating UI cards */
+  --radius-field: 0.625rem;       /* 10px: inputs */
+
+  /* Spacing helpers */
+  --spacing-gutter: 0.75rem;      /* 12px media inset on desktop (8px on mobile) */
+  --spacing-page: 3rem;           /* 48px text inset on desktop (20px on mobile) */
+  --spacing-section: 10rem;       /* 160px section padding on desktop */
+
+  /* Shadow */
+  --shadow-float: 0 12px 32px rgb(21 26 36 / 0.16);
+
+  /* Motion (security key animation and its living background) */
+  --animate-drift-a: drift-a 16s ease-in-out infinite;
+  --animate-drift-b: drift-b 20s ease-in-out infinite;
+
+  @keyframes drift-a {
+    0%, 100% { transform: translate(-30%, -20%); }
+    50% { transform: translate(20%, 25%); }
+  }
+  @keyframes drift-b {
+    0%, 100% { transform: translate(25%, 30%); }
+    50% { transform: translate(-25%, -15%); }
+  }
+
+  /* Third drifting glow and the slow light sweep in the key card */
+  --animate-drift-c: drift-c 24s ease-in-out infinite;
+  --animate-sweep: sweep 18s linear infinite;
+
+  @keyframes drift-c {
+    0%, 100% { transform: translate(-20%, 35%); }
+    50% { transform: translate(35%, -30%); }
+  }
+  @keyframes sweep {
+    0% { transform: translateX(-120%) skewX(-16deg); }
+    100% { transform: translateX(320%) skewX(-16deg); }
+  }
+
+  /*
+    Security key, 7s loop: ring, shaft and teeth arrive one after another, each label
+    fades in as its part lands, the joined key glows, holds, then fades.
+    Each part sets its own start offset with --key-x / --key-y.
+  */
+  --animate-key-p1: key-p1 7s ease-out infinite;
+  --animate-key-p2: key-p2 7s ease-out infinite;
+  --animate-key-p3: key-p3 7s ease-out infinite;
+  --animate-key-l1: key-l1 7s ease-out infinite;
+  --animate-key-l2: key-l2 7s ease-out infinite;
+  --animate-key-l3: key-l3 7s ease-out infinite;
+  --animate-key-lock: key-lock 7s ease-out infinite;
+
+  @keyframes key-p1 {
+    0% { transform: translate(var(--key-x), var(--key-y)); opacity: 0; }
+    16%, 84% { transform: translate(0, 0); opacity: 1; }
+    96%, 100% { transform: translate(0, 0); opacity: 0; }
+  }
+  @keyframes key-p2 {
+    0%, 12% { transform: translate(var(--key-x), var(--key-y)); opacity: 0; }
+    30%, 84% { transform: translate(0, 0); opacity: 1; }
+    96%, 100% { transform: translate(0, 0); opacity: 0; }
+  }
+  @keyframes key-p3 {
+    0%, 26% { transform: translate(var(--key-x), var(--key-y)); opacity: 0; }
+    44%, 84% { transform: translate(0, 0); opacity: 1; }
+    96%, 100% { transform: translate(0, 0); opacity: 0; }
+  }
+  @keyframes key-l1 {
+    0%, 10% { opacity: 0; }
+    18%, 84% { opacity: 1; }
+    94%, 100% { opacity: 0; }
+  }
+  @keyframes key-l2 {
+    0%, 24% { opacity: 0; }
+    32%, 84% { opacity: 1; }
+    94%, 100% { opacity: 0; }
+  }
+  @keyframes key-l3 {
+    0%, 38% { opacity: 0; }
+    46%, 84% { opacity: 1; }
+    94%, 100% { opacity: 0; }
+  }
+  @keyframes key-lock {
+    0%, 46% { opacity: 0; }
+    54% { opacity: 0.9; }
+    70%, 84% { opacity: 0.4; }
+    94%, 100% { opacity: 0; }
+  }
+}
+
+/* Fade-and-rise as a block scrolls into view (driven by a view() timeline, see page.tsx) */
+@keyframes rise {
+  0% { opacity: 0; transform: translateY(24px); }
+  25%, 100% { opacity: 1; transform: translateY(0); }
+}
+
+@layer base {
+  html {
+    background: var(--color-ground);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Smooth scrolling for in-page links; stays instant for people who reduce motion */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+  body {
+    font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ink-deep);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
