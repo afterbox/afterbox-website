@@ -25,7 +25,7 @@ const household = [
 
 export default function Household() {
   return (
-    <section className="pt-[300px] pb-24 md:pt-[320px] md:pb-section">
+    <section className="pt-[140px] pb-24 md:pt-[190px] md:pb-section">
       <div
         data-rise
         className="mx-auto max-w-[1440px] px-5 pb-8 md:px-page md:pb-14 lg:flex lg:items-end lg:justify-between lg:gap-16"

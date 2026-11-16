@@ -11,7 +11,7 @@ const desktopOnly = "max-md:hidden";
 
 export default function UsefulToday() {
   return (
-    <section id="how" className="scroll-mt-6 pt-24 pb-[72px] md:pt-section md:pb-[120px]">
+    <section id="useful" className="scroll-mt-6 pt-24 pb-[72px] md:pt-section md:pb-[120px]">
       <div
         data-rise
         className="mx-auto max-w-[1440px] px-5 pb-8 md:px-page md:pb-14 lg:flex lg:items-end lg:justify-between lg:gap-16"

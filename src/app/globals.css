@@ -139,6 +139,84 @@
     70%, 84% { opacity: 0.4; }
     94%, 100% { opacity: 0; }
   }
+
+  /*
+    How it works, 18s loop: three 6s steps. a = find your money, b = what it's worth,
+    c = share it. st/pr = desktop step opacity and progress line, hwm-st = mobile step text.
+    Keyframes and timings are the design's (docs/design), copied exactly.
+  */
+  --animate-hw-a1: hw-a1 18s ease-out infinite;
+  --animate-hw-a2: hw-a2 18s ease-out infinite;
+  --animate-hw-a3: hw-a3 18s ease-out infinite;
+  --animate-hw-a4: hw-a4 18s ease-out infinite;
+  --animate-hw-a5: hw-a5 18s ease-out infinite;
+  --animate-hw-a6: hw-a6 18s ease-out infinite;
+  --animate-hw-b1: hw-b1 18s ease-out infinite;
+  --animate-hw-b2: hw-b2 18s ease-out infinite;
+  --animate-hw-b3: hw-b3 18s ease-out infinite;
+  --animate-hw-b4: hw-b4 18s ease-out infinite;
+  --animate-hw-c1: hw-c1 18s ease-out infinite;
+  --animate-hw-c2: hw-c2 18s ease-out infinite;
+  --animate-hw-c3: hw-c3 18s ease-out infinite;
+  --animate-hw-c4: hw-c4 18s ease-out infinite;
+  --animate-hw-c5: hw-c5 18s ease-out infinite;
+  --animate-hw-scan: hw-scan 18s linear infinite;
+  --animate-hw-doc: hw-doc 18s ease-out infinite;
+  --animate-hw-st0: hw-st0 18s ease infinite;
+  --animate-hw-st1: hw-st1 18s ease infinite;
+  --animate-hw-st2: hw-st2 18s ease infinite;
+  --animate-hw-pr0: hw-pr0 18s linear infinite;
+  --animate-hw-pr1: hw-pr1 18s linear infinite;
+  --animate-hw-pr2: hw-pr2 18s linear infinite;
+  --animate-hwm-st0: hwm-st0 18s ease infinite;
+  --animate-hwm-st1: hwm-st1 18s ease infinite;
+  --animate-hwm-st2: hwm-st2 18s ease infinite;
+
+  @keyframes hw-a1{0%,1.67%{opacity:0;transform:translateY(10px)}4.44%,31.67%{opacity:1;transform:translateY(0)}33.33%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-a2{0%,5.56%{opacity:0;transform:translateY(10px)}8.33%,31.67%{opacity:1;transform:translateY(0)}33.33%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-a3{0%,7.78%{opacity:0;transform:translateY(10px)}10.56%,31.67%{opacity:1;transform:translateY(0)}33.33%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-a4{0%,12.22%{opacity:0;transform:translateY(10px)}15.00%,31.67%{opacity:1;transform:translateY(0)}33.33%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-a5{0%,16.67%{opacity:0;transform:translateY(10px)}19.44%,31.67%{opacity:1;transform:translateY(0)}33.33%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-a6{0%,21.11%{opacity:0;transform:translateY(10px)}23.89%,31.67%{opacity:1;transform:translateY(0)}33.33%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-b1{0%,35.00%{opacity:0;transform:translateY(10px)}37.78%,65.00%{opacity:1;transform:translateY(0)}66.67%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-b2{0%,48.89%{opacity:0;transform:translateY(10px)}51.67%,65.00%{opacity:1;transform:translateY(0)}66.67%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-b3{0%,54.44%{opacity:0;transform:translateY(10px)}57.22%,65.00%{opacity:1;transform:translateY(0)}66.67%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-b4{0%,47.78%{opacity:0;transform:translateY(10px)}50.56%,65.00%{opacity:1;transform:translateY(0)}66.67%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-c1{0%,68.33%{opacity:0;transform:translateY(10px)}71.11%,98.33%{opacity:1;transform:translateY(0)}100.00%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-c2{0%,73.33%{opacity:0;transform:translateY(10px)}76.11%,98.33%{opacity:1;transform:translateY(0)}100.00%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-c3{0%,77.22%{opacity:0;transform:translateY(10px)}80.00%,98.33%{opacity:1;transform:translateY(0)}100.00%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-c4{0%,81.11%{opacity:0;transform:translateY(10px)}83.89%,98.33%{opacity:1;transform:translateY(0)}100.00%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-c5{0%,85.56%{opacity:0;transform:translateY(10px)}88.33%,98.33%{opacity:1;transform:translateY(0)}100.00%,100%{opacity:0;transform:translateY(0)}}
+  @keyframes hw-scan{0%,37.78%{top:0;opacity:0}38.33%{top:0;opacity:1}47.22%{top:100%;opacity:1}47.78%,100%{top:100%;opacity:0}}
+  @keyframes hw-doc{0%,35.00%{opacity:0;transform:translateY(10px)}37.78%,47.78%{opacity:1;transform:translateY(0)}51.11%,65.00%{opacity:.35;transform:translateY(0)}66.67%,100%{opacity:0}}
+  @keyframes hw-st0{0%,31.67%{opacity:1}33.89%,97.78%{opacity:.38}100%{opacity:1}}
+  @keyframes hw-pr0{0%,0.00%{transform:scaleX(0)}33.06%{transform:scaleX(1)}33.33%,100%{transform:scaleX(0)}}
+  @keyframes hw-st1{0%,31.67%{opacity:.38}33.89%,65.00%{opacity:1}67.22%,100%{opacity:.38}}
+  @keyframes hw-pr1{0%,33.33%{transform:scaleX(0)}66.39%{transform:scaleX(1)}66.67%,100%{transform:scaleX(0)}}
+  @keyframes hw-st2{0%,65.00%{opacity:.38}67.22%,98.33%{opacity:1}100.00%,100%{opacity:.38}}
+  @keyframes hw-pr2{0%,66.67%{transform:scaleX(0)}99.72%{transform:scaleX(1)}100.00%,100%{transform:scaleX(0)}}
+  @keyframes hwm-st0{0%,31.67%{opacity:1;transform:none}33.33%,98.33%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:none}}
+  @keyframes hwm-st1{0%,33.33%{opacity:0;transform:translateY(8px)}35.00%,65.00%{opacity:1;transform:none}66.67%,100%{opacity:0;transform:translateY(8px)}}
+  @keyframes hwm-st2{0%,66.67%{opacity:0;transform:translateY(8px)}68.33%,98.33%{opacity:1;transform:none}100%{opacity:0;transform:translateY(8px)}}
+}
+
+/*
+  How it works player (HowItWorksPlayer.tsx): a negative delay starts the loop at the
+  chosen step, play-state pauses it, and data-restart briefly removes the animations
+  so they start over with the new delay.
+*/
+[data-hw] [class*="animate-hw"] {
+  animation-delay: var(--hw-delay, 0s);
+  animation-play-state: var(--hw-play, running);
+}
+[data-hw][data-restart] [class*="animate-hw"] {
+  animation-name: none;
+}
+/* Mobile runs the same keyframes over 24s: 8s per step. Keep in step with HowItWorksPlayer. */
+@media (max-width: 767px) {
+  [data-hw] [class*="animate-hw"] {
+    animation-duration: 24s;
+  }
 }
 
 /* Fade-and-rise as a block scrolls into view (driven by a view() timeline, see page.tsx) */

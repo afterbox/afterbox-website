@@ -47,7 +47,7 @@ export default function Security() {
     // Keep this section free of transform, opacity and z-index: see FlowBackground.tsx.
     <section
       id="security"
-      className="relative scroll-mt-6 bg-ink-deep px-5 pt-24 pb-28 text-on-night md:px-page md:pt-[140px] md:pb-[150px]"
+      className="relative scroll-mt-6 bg-ink-deep px-5 pt-24 pb-24 text-on-night md:px-page md:pt-[140px] md:pb-[120px]"
     >
       <FlowJoins />
 
