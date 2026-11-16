@@ -2,10 +2,10 @@ type ResponsiveImageProps = {
   src: string;
   width: number;
   height: number;
-  /** Served below 768px. */
-  mobileSrc: string;
-  mobileWidth: number;
-  mobileHeight: number;
+  /** Served below 768px. Without it, src is used at every width. */
+  mobileSrc?: string;
+  mobileWidth?: number;
+  mobileHeight?: number;
   alt: string;
   /** Extra classes for the image, e.g. object-position. */
   className?: string;
@@ -27,7 +27,9 @@ export default function ResponsiveImage({
 }: ResponsiveImageProps) {
   return (
     <picture>
-      <source media="(max-width: 767px)" srcSet={mobileSrc} width={mobileWidth} height={mobileHeight} />
+      {mobileSrc && (
+        <source media="(max-width: 767px)" srcSet={mobileSrc} width={mobileWidth} height={mobileHeight} />
+      )}
       {/* The photos are pre-cropped, pre-sized WebP, so next/image isn't needed. */}
       <img
         src={src}

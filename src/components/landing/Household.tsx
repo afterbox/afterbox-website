@@ -2,9 +2,10 @@ import Button from "@/components/ui/Button";
 import FloatingCard from "@/components/ui/FloatingCard";
 import ResponsiveImage from "@/components/ui/ResponsiveImage";
 
-// The frames are sized in CSS px; the photos are 2× (1414×1334, mobile 1084×1334),
-// so they are scaled down into the frame rather than up.
-const photo = "relative h-[460px] rounded-card bg-line md:h-[560px] lg:h-[660px]";
+// Below 768px the frame takes the photo's own ratio, so the whole photo shows. The
+// photos are 2× (1414×1334), so they are scaled down into the frame rather than up.
+const photo =
+  "relative aspect-[1414/1334] rounded-card bg-line md:aspect-auto md:h-[560px] lg:h-[660px]";
 
 // Below 768px each card sits under its photo, overlapping the bottom edge by 32px,
 // so it never covers faces. From 768px it floats over the photo.
@@ -51,11 +52,8 @@ export default function Household() {
               src="/images/household-family.webp"
               width={1414}
               height={1334}
-              mobileSrc="/images/household-family-mobile.webp"
-              mobileWidth={1084}
-              mobileHeight={1334}
               alt="Three generations of a family around the table at home, clapping as a sparkler burns on a birthday cake."
-              className="object-[50%_60%] md:object-[50%_35%]"
+              className="md:object-[50%_35%]"
             />
           </div>
           {/* Bottom right, because faces fill the top of this photo. */}
@@ -83,11 +81,8 @@ export default function Household() {
               src="/images/household-shared.webp"
               width={1414}
               height={1334}
-              mobileSrc="/images/household-shared-mobile.webp"
-              mobileWidth={1084}
-              mobileHeight={1334}
               alt="A smiling couple in their kitchen, arms around each other as they cook."
-              className="object-[50%_20%] md:object-[0%_20%]"
+              className="md:object-[0%_20%]"
             />
           </div>
           {/* Top right from 1280px, as designed. Narrower than that it would cover his face, so it stays bottom right. */}

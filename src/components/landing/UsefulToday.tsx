@@ -29,17 +29,14 @@ export default function UsefulToday() {
       </div>
 
       <div data-rise className="relative mx-2 md:mx-gutter">
-        <div className="relative h-[560px] rounded-card bg-line md:h-[780px]">
-          {/* Desktop: the full photo, positioned so her face, the mug and the phone stay in frame at every width. */}
+        <div className="relative aspect-[3/2] rounded-card bg-line md:aspect-auto md:h-[780px]">
+          {/* Mobile shows the whole photo. From 768px it is positioned so her face, the mug and the phone stay in frame at every width. */}
           <ResponsiveImage
             src="/images/useful-today.webp"
             width={1920}
             height={1280}
-            mobileSrc="/images/useful-today-mobile.webp"
-            mobileWidth={640}
-            mobileHeight={960}
             alt="A woman relaxing at home with a mug of tea, looking at her phone."
-            className="object-[50%_30%] md:object-[center_65%]"
+            className="md:object-[center_65%]"
           />
         </div>
 
