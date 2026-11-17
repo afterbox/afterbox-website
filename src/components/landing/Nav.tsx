@@ -23,13 +23,13 @@ export default function Nav() {
 
         <div className="hidden gap-9 text-[15px] font-medium md:flex">
           {links.map((link) => (
-            <a key={link.href} href={link.href} className="py-2 hover:opacity-85">
+            <Link key={link.href} href={link.href} className="py-2 hover:opacity-85">
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
 
-        <Button href="/start" variant="light" size="sm" className="max-md:hidden">
+        <Button href="/signup" variant="light" size="sm" className="max-md:hidden">
           Start your record
         </Button>
 

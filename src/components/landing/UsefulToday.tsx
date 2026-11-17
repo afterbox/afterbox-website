@@ -24,7 +24,7 @@ export default function UsefulToday() {
             Find your pensions, policies and accounts automatically, and keep them up to date
             without lifting a finger.
           </p>
-          <Button href="/start">Start your record</Button>
+          <Button href="/signup">Start your record</Button>
         </div>
       </div>
 
