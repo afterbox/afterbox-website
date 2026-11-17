@@ -51,7 +51,7 @@ export default function TextField({
           id={inputId}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : undefined}
-          className={`h-[52px] w-full rounded-field border bg-ground text-base text-ink transition-[border-color,box-shadow] duration-200 placeholder:text-ink-soft/70 focus-visible:outline-none ${
+          className={`h-12 w-full rounded-field border bg-ground text-base text-ink sm:h-[52px] transition-[border-color,box-shadow] duration-200 placeholder:text-ink-soft/70 focus-visible:outline-none ${
             icon ? "pr-4 pl-[46px]" : "px-4"
           } ${
             error ? "border-alert ring-3 ring-alert/12" : "border-line focus:border-ink-deep focus:ring-3 focus:ring-ink-deep/14"

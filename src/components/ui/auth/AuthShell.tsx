@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { createContext, Suspense, useContext, useState, type ReactNode } from "react";
-import { ChevronLeftIcon } from "@/components/ui/icons";
+import BackButton from "@/components/ui/BackButton";
 import { authHref, DEMO_EMAIL, readMode } from "@/lib/mock-auth";
 
 const AuthShellContext = createContext<{ setFinished: (finished: boolean) => void }>({
@@ -13,21 +13,9 @@ const AuthShellContext = createContext<{ setFinished: (finished: boolean) => voi
 /** Lets the success view drop the Back button and bring the wordmark back. */
 export const useAuthShell = () => useContext(AuthShellContext);
 
-function BackLink({ href }: { href: string }) {
-  return (
-    <Link
-      href={href}
-      aria-label="Back"
-      className="flex items-center justify-center text-ink transition-colors duration-200 max-sm:-ml-[17px] max-sm:size-11 sm:size-10 sm:rounded-full sm:border sm:border-line sm:hover:bg-card"
-    >
-      <ChevronLeftIcon className="size-[22px] sm:size-[18px]" />
-    </Link>
-  );
-}
-
-function VerifyBackLink() {
+function VerifyBackButton() {
   const params = useSearchParams();
-  return <BackLink href={authHref(readMode(params.get("from")), params.get("email") ?? DEMO_EMAIL)} />;
+  return <BackButton fallbackHref={authHref(readMode(params.get("from")), params.get("email") ?? DEMO_EMAIL)} />;
 }
 
 /**
@@ -50,8 +38,8 @@ export default function AuthShell({ children }: { children: ReactNode }) {
             afterbox
           </Link>
           {showBack && (
-            <Suspense fallback={<BackLink href="/signup" />}>
-              <VerifyBackLink />
+            <Suspense fallback={<BackButton fallbackHref="/signup" />}>
+              <VerifyBackButton />
             </Suspense>
           )}
         </header>
@@ -62,7 +50,15 @@ export default function AuthShell({ children }: { children: ReactNode }) {
           }`}
         >
           <p className="text-center text-xs/[17px] text-ink-soft/70">
-            By continuing you agree to our <u>Terms</u> and <u>Privacy Policy</u>.
+            By continuing you agree to our{" "}
+            <Link href="/terms" className="underline hover:text-ink-soft">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline hover:text-ink-soft">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </footer>
       </div>

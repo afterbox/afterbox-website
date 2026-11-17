@@ -21,8 +21,8 @@ const sizes = {
   sm: "px-[22px] py-3 text-[15px]/5",
   md: "px-6 py-3.5 text-[15px]/5",
   lg: "px-[30px] py-[17px] text-base/[21px]",
-  /** Full-width 52px button used in the auth forms. */
-  block: "h-[52px] w-full px-6 text-[15px]/5 tracking-[-0.01em]",
+  /** Full-width button used in the auth forms: 48px on phones, 52px from 640px. */
+  block: "h-12 w-full px-6 text-sm/5 tracking-[-0.01em] sm:h-[52px] sm:text-[15px]/5",
 } as const;
 
 type ButtonProps = {

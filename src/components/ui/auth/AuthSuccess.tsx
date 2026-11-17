@@ -22,7 +22,7 @@ export default function AuthSuccess() {
       <h1 className="mb-2 text-[30px]/[1.1] font-normal tracking-[-0.035em] text-ink sm:text-[32px]/[1.1]">
         You&apos;re in
       </h1>
-      <p className="mb-6 text-[15px] text-ink-soft">Next, we&apos;ll connect your bank.</p>
+      <p className="mb-6 text-sm text-ink-soft sm:text-[15px]">Next, we&apos;ll connect your bank.</p>
       <Button href="/" variant="inkDeep" size="block">
         Continue
       </Button>

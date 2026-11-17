@@ -94,6 +94,8 @@ export default function EmailAuthForm({ mode, initialEmail, demo = null }: Email
       emailRef.current?.focus();
       return;
     }
+    // Going back from /verify should find the email still filled in.
+    window.history.replaceState(null, "", authHref(mode, email));
     router.push(verifyHref(mode, email));
   }
 
@@ -157,7 +159,7 @@ export default function EmailAuthForm({ mode, initialEmail, demo = null }: Email
             type="submit"
             variant="inkDeep"
             size="block"
-            className="mt-3.5"
+            className="mt-4 sm:mt-3.5"
             loading={status === "sending"}
             loadingLabel="Sending code"
             disabled={!email.trim() || status === "google"}
@@ -170,7 +172,7 @@ export default function EmailAuthForm({ mode, initialEmail, demo = null }: Email
             gapClassName="pt-3"
           />
 
-          <p className="mt-[22px] text-center text-sm text-ink-soft">
+          <p className="mt-8 text-center text-[13px] text-ink-soft sm:mt-[22px] sm:text-sm">
             {text.prompt}{" "}
             <Link
               href={authHref(text.switchTo, email)}

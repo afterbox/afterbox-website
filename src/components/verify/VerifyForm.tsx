@@ -174,7 +174,7 @@ export function VerifyScreen({ email, from, demo }: VerifyScreenProps) {
       )}
 
       <Reveal open={status !== "locked"}>
-        <div className={`transition-[padding] duration-200 ${message ? "pt-4" : "pt-[22px]"}`}>
+        <div className={`transition-[padding] duration-200 ${message ? "pt-4" : "pt-7 sm:pt-[22px]"}`}>
           <ResendTimer onResend={resend} checking={status === "checking"} expired={status === "expired"} />
         </div>
       </Reveal>

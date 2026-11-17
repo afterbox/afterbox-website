@@ -109,7 +109,7 @@ export default function CodeInput({
           return (
             <div
               key={index}
-              className={`flex h-[58px] flex-1 items-center justify-center rounded-field border text-[22px] font-medium transition-[border-color,box-shadow,background-color,color] duration-200 ${
+              className={`flex h-[52px] flex-1 sm:h-[58px] items-center justify-center rounded-field border text-[22px] font-medium transition-[border-color,box-shadow,background-color,color] duration-200 ${
                 boxStyles[state]
               } ${isActive ? "border-ink-deep ring-3 ring-ink-deep/14" : ""}`}
             >
