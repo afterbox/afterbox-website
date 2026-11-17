@@ -152,19 +152,19 @@ export default function MobileMenu({ links }: { links: MenuLink[] }) {
         <ul className="mt-6 px-5">
           {links.map((link, i) => (
             <li key={link.href} className={linkMotion} style={{ transitionDelay: `${i * 40}ms` }}>
-              <a
+              <Link
                 href={link.href}
                 onClick={(e) => goTo(e, link.href)}
                 className="block py-3 text-[32px]/[36px] tracking-[-0.03em]"
               >
                 {link.label}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
 
         <div className="mt-auto px-5 pb-6">
-          <Button href="/start" variant="light" size="lg" className="w-full">
+          <Button href="/signup" variant="light" size="lg" className="w-full">
             Start your record
           </Button>
         </div>

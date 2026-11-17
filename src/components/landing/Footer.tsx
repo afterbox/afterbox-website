@@ -37,7 +37,7 @@ export default function Footer() {
           <h2 className="mb-5 text-[36px]/[40px] tracking-[-0.04em] text-shadow-[0_2px_24px_rgb(10_16_32/0.35)] md:mb-0 md:max-w-[620px] md:text-[56px]/[60px]">
             Start your record today.
           </h2>
-          <Button href="/start" variant="light" size="lg" className="w-full md:w-auto">
+          <Button href="/signup" variant="light" size="lg" className="w-full md:w-auto">
             Start your record
           </Button>
         </div>

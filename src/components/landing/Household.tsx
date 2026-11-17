@@ -38,7 +38,7 @@ export default function Household() {
             Add your partner, your parents or your grown-up kids. Everyone keeps their own record
             and chooses what to share.
           </p>
-          <Button href="/start">Start your record</Button>
+          <Button href="/signup">Start your record</Button>
         </div>
       </div>
 

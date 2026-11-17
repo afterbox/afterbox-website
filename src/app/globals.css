@@ -63,6 +63,7 @@
 
   /* Shadow */
   --shadow-float: 0 12px 32px rgb(21 26 36 / 0.16);
+  --shadow-card: 0 0 0 1px var(--color-line), 0 30px 70px -20px rgb(21 26 36 / 0.12); /* auth card */
 
   /* Motion (security key animation and its living background) */
   --animate-drift-a: drift-a 16s ease-in-out infinite;
@@ -252,4 +253,33 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/*
+  Auth screens (src/app/(home)): the card rises in on each route, in-card changes fade,
+  messages open their height (FormMessage Reveal), a wrong code shakes.
+  Reduced motion keeps the fades and drops all movement; the class selectors outrank the * reset above.
+*/
+@keyframes auth-enter {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@keyframes auth-fade {
+  from { opacity: 0; }
+}
+@keyframes auth-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+.auth-enter { animation: auth-enter 320ms ease-out both; }
+.auth-fade { animation: auth-fade 200ms ease-out both; }
+.auth-shake { animation: auth-shake 300ms ease-in-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-enter { animation-name: auth-fade; animation-duration: 320ms !important; }
+  .auth-fade { animation-duration: 200ms !important; }
+  .auth-shake { animation: none !important; }
+  .auth-reveal { transition-property: opacity !important; transition-duration: 200ms !important; }
 }
