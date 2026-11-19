@@ -1,8 +1,9 @@
 "use client";
 
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   authHref,
   continueWithGoogle,
@@ -14,16 +15,17 @@ import {
   type AuthMode,
   type Demo,
 } from "@/lib/mock-auth";
+import { FLOW_CARD, transition } from "@/lib/motion";
 import BrandMark from "@/components/ui/BrandMark";
 import Button from "@/components/ui/Button";
 import FormMessage from "@/components/ui/FormMessage";
 import { MailIcon } from "@/components/ui/icons";
 import TextField from "@/components/ui/TextField";
 import AuthCard from "./AuthCard";
-import AuthSuccess from "./AuthSuccess";
 import AuthTitle from "./AuthTitle";
 import GoogleButton from "./GoogleButton";
 import OrDivider from "./OrDivider";
+import { onboardingHref, useHandOff } from "./useHandOff";
 
 const copy = {
   signup: {
@@ -47,7 +49,7 @@ const messages = {
   offline: "You're offline.",
 };
 
-type Status = "idle" | "sending" | "google" | "success";
+type Status = "idle" | "sending" | "google";
 type Problem = "invalid" | "noAccount" | "googleFailed" | "offline" | null;
 
 type EmailAuthFormProps = {
@@ -65,8 +67,20 @@ export default function EmailAuthForm({ mode, initialEmail, demo = null }: Email
   const [problem, setProblem] = useState<Problem>(
     demo === "google-fail" ? "googleFailed" : demo === "offline" ? "offline" : null,
   );
+  const [handOff, setHandOff] = useState<string | null>(null);
+  const contentLeaving = useHandOff(handOff);
   const busy = useRef(false);
   const emailRef = useRef<HTMLInputElement>(null);
+
+  // Next keeps a visited page alive but hidden; coming back should find the form ready, not mid-send.
+  useEffect(
+    () => () => {
+      busy.current = false;
+      setHandOff(null);
+      setStatus((current) => (current === "sending" || current === "google" ? "idle" : current));
+    },
+    [],
+  );
 
   const isBusy = status === "sending" || status === "google";
   const fieldError = problem === "invalid" || problem === "noAccount" ? messages[problem] : null;
@@ -108,21 +122,20 @@ export default function EmailAuthForm({ mode, initialEmail, demo = null }: Email
     busy.current = true;
     setProblem(null);
     setStatus("google");
-    const result = await continueWithGoogle(demo);
-    busy.current = false;
+    const result = await continueWithGoogle(mode, demo);
     if (result === "failed") {
+      busy.current = false;
       setStatus("idle");
       setProblem("googleFailed");
       return;
     }
-    setStatus("success");
+    setHandOff(onboardingHref(result));
   }
 
   return (
-    <AuthCard>
-      {status === "success" ? (
-        <AuthSuccess />
-      ) : (
+    // Only once handing over: sharing it earlier would morph this card into the code screen's.
+    <AuthCard layoutId={handOff ? FLOW_CARD : undefined}>
+      <motion.div initial={false} animate={{ opacity: contentLeaving ? 0 : 1 }} transition={transition("fast")}>
         <form noValidate onSubmit={handleSubmit}>
           <BrandMark />
           <AuthTitle title={text.title} />
@@ -182,7 +195,7 @@ export default function EmailAuthForm({ mode, initialEmail, demo = null }: Email
             </Link>
           </p>
         </form>
-      )}
+      </motion.div>
     </AuthCard>
   );
 }

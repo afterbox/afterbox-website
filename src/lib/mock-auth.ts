@@ -13,6 +13,7 @@ export const timings = {
   resendCooldown: 59, // seconds
   resentTick: 1200, // the tick after a resend, before the countdown restarts
   lockout: 599, // seconds after too many tries ("9:59")
+  verifiedHold: 600, // the verified state on the code screen, before onboarding
 };
 
 export type AuthMode = "signup" | "login";
@@ -52,9 +53,11 @@ export async function sendCode(mode: AuthMode, email: string): Promise<"sent" | 
   return "sent";
 }
 
-export async function continueWithGoogle(demo: Demo | null): Promise<"ok" | "failed"> {
+/** The mocked Google account is new when you come from sign up, and returning from log in. */
+export async function continueWithGoogle(mode: AuthMode, demo: Demo | null): Promise<"new" | "returning" | "failed"> {
   await wait(timings.google);
-  return demo === "google-fail" ? "failed" : "ok";
+  if (demo === "google-fail") return "failed";
+  return mode === "login" ? "returning" : "new";
 }
 
 export async function checkCode(code: string): Promise<"ok" | "wrong"> {

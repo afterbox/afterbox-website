@@ -1,13 +1,14 @@
 "use client";
 
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import AuthCard from "@/components/ui/auth/AuthCard";
-import AuthSuccess from "@/components/ui/auth/AuthSuccess";
 import AuthTitle from "@/components/ui/auth/AuthTitle";
 import CodeInput, { CODE_LENGTH, type CodeInputState } from "@/components/ui/auth/CodeInput";
 import ResendTimer from "@/components/ui/auth/ResendTimer";
+import { onboardingHref, useHandOff } from "@/components/ui/auth/useHandOff";
 import BrandMark from "@/components/ui/BrandMark";
 import FormMessage, { Reveal } from "@/components/ui/FormMessage";
 import { PencilIcon } from "@/components/ui/icons";
@@ -24,21 +25,29 @@ import {
   type AuthMode,
   type Demo,
 } from "@/lib/mock-auth";
+import { FLOW_CARD, transition } from "@/lib/motion";
 
-type Status = "idle" | "checking" | "wrong" | "expired" | "locked" | "offline" | "success";
+type Status = "idle" | "checking" | "wrong" | "expired" | "locked" | "offline" | "verified";
 
 const boxState: Partial<Record<Status, CodeInputState>> = {
   checking: "checking",
   wrong: "error",
   expired: "error",
   locked: "locked",
+  verified: "verified",
 };
 
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
-type VerifyScreenProps = { email: string; from: AuthMode; demo: Demo | null };
+type VerifyScreenProps = {
+  email: string;
+  from: AuthMode;
+  demo: Demo | null;
+  /** Onboarding's `?mock=` scenario, passed on to /start. */
+  mock?: string | null;
+};
 
-export function VerifyScreen({ email, from, demo }: VerifyScreenProps) {
+export function VerifyScreen({ email, from, demo, mock }: VerifyScreenProps) {
   const [code, setCode] = useState(demo === "expired" ? DEMO_CODE : "");
   const [status, setStatus] = useState<Status>(
     demo === "expired" ? "expired" : demo === "locked" ? "locked" : demo === "offline" ? "offline" : "idle",
@@ -48,8 +57,26 @@ export function VerifyScreen({ email, from, demo }: VerifyScreenProps) {
   const tries = useRef(0);
   const busy = useRef(false);
   const typed = useRef(false);
+  const verified = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const backHref = authHref(from, email);
+
+  const contentLeaving = useHandOff(
+    status === "verified" ? onboardingHref(from === "login" ? "returning" : "new", mock) : null,
+    timings.verifiedHold,
+  );
+
+  // Next keeps a visited page alive but hidden; coming back should ask for a fresh code, not reuse this one.
+  useEffect(
+    () => () => {
+      if (!verified.current) return;
+      verified.current = false;
+      typed.current = false;
+      setCode("");
+      setStatus("idle");
+    },
+    [],
+  );
 
   useEffect(() => {
     if (status !== "locked") return;
@@ -76,7 +103,8 @@ export function VerifyScreen({ email, from, demo }: VerifyScreenProps) {
     const result = await checkCode(value);
     busy.current = false;
     if (result === "ok") {
-      setStatus("success");
+      verified.current = true;
+      setStatus("verified");
       return;
     }
     tries.current += 1;
@@ -118,14 +146,6 @@ export function VerifyScreen({ email, from, demo }: VerifyScreenProps) {
     inputRef.current?.focus();
   }
 
-  if (status === "success") {
-    return (
-      <AuthCard>
-        <AuthSuccess />
-      </AuthCard>
-    );
-  }
-
   const message =
     status === "wrong"
       ? "Wrong code. Try again."
@@ -139,45 +159,52 @@ export function VerifyScreen({ email, from, demo }: VerifyScreenProps) {
   const icon = status === "locked" ? "clock" : status === "offline" ? "wifiOff" : "alert";
 
   return (
-    <AuthCard>
-      <BrandMark />
-      <AuthTitle title="Check your email">
-        <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-line bg-ground py-[3px] pr-1 pl-3 font-medium text-ink">
-          <span className="truncate">{email}</span>
-          <Link
-            href={backHref}
-            aria-label="Use a different email"
-            className="flex size-[26px] flex-none items-center justify-center rounded-full text-ink-soft transition-colors duration-200 hover:bg-card hover:text-ink"
-          >
-            <PencilIcon size={14} />
-          </Link>
-        </span>
-      </AuthTitle>
+    <AuthCard layoutId={FLOW_CARD}>
+      <motion.div initial={false} animate={{ opacity: contentLeaving ? 0 : 1 }} transition={transition("fast")}>
+        <BrandMark />
+        <AuthTitle title="Check your email">
+          <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-line bg-ground py-[3px] pr-1 pl-3 font-medium text-ink">
+            <span className="truncate">{email}</span>
+            <Link
+              href={backHref}
+              aria-label="Use a different email"
+              className="flex size-[26px] flex-none items-center justify-center rounded-full text-ink-soft transition-colors duration-200 hover:bg-card hover:text-ink"
+            >
+              <PencilIcon size={14} />
+            </Link>
+          </span>
+        </AuthTitle>
 
-      <CodeInput
-        ref={inputRef}
-        value={code}
-        onChange={(value) => {
-          typed.current = true;
-          handleChange(value);
-        }}
-        state={boxState[status] ?? "idle"}
-        shakeKey={shakeKey}
-        readOnly={status === "checking" || status === "expired"}
-        describedBy={message ? "code-message" : undefined}
-      />
-      <FormMessage id="code-message" message={message} icon={icon} live={status !== "locked"} />
-      {status === "locked" && (
-        <span role="status" className="sr-only">
-          Too many tries. Try again in 10 minutes.
-        </span>
-      )}
+        <CodeInput
+          ref={inputRef}
+          value={code}
+          onChange={(value) => {
+            typed.current = true;
+            handleChange(value);
+          }}
+          state={boxState[status] ?? "idle"}
+          shakeKey={shakeKey}
+          readOnly={status === "checking" || status === "expired" || status === "verified"}
+          describedBy={message ? "code-message" : undefined}
+        />
+        <FormMessage id="code-message" message={message} icon={icon} live={status !== "locked"} />
+        {status === "locked" && (
+          <span role="status" className="sr-only">
+            Too many tries. Try again in 10 minutes.
+          </span>
+        )}
 
-      <Reveal open={status !== "locked"}>
-        <div className={`transition-[padding] duration-200 ${message ? "pt-4" : "pt-7 sm:pt-[22px]"}`}>
-          <ResendTimer onResend={resend} checking={status === "checking"} expired={status === "expired"} />
-        </div>
-      </Reveal>
+        <Reveal open={status !== "locked"}>
+          <div className={`transition-[padding] duration-200 ${message ? "pt-4" : "pt-7 sm:pt-[22px]"}`}>
+            <ResendTimer
+              onResend={resend}
+              checking={status === "checking"}
+              expired={status === "expired"}
+              verified={status === "verified"}
+            />
+          </div>
+        </Reveal>
+      </motion.div>
     </AuthCard>
   );
 }
@@ -189,6 +216,7 @@ export default function VerifyForm() {
       email={params.get("email") || DEMO_EMAIL}
       from={readMode(params.get("from"))}
       demo={readDemo(params.get("demo"))}
+      mock={params.get("mock")}
     />
   );
 }

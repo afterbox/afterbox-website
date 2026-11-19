@@ -18,7 +18,7 @@ import {
 } from "react";
 import BackButton from "@/components/ui/BackButton";
 import { OnboardingProvider, useHydrated, useOnboarding, type OnboardingState } from "@/lib/onboarding/store";
-import { cssMotionVars, distance, transition } from "@/lib/motion";
+import { cssMotionVars, distance, FLOW_CARD, transition } from "@/lib/motion";
 import { useMotionTokens } from "@/lib/useMotionTokens";
 
 type HeaderSetup = { step: 1 | 2 | 3; backHref: string | null };
@@ -173,6 +173,18 @@ function FocusTitle({ children }: { children: ReactNode }) {
 
 const isGuide = (pathname: string | null) => pathname?.includes("/cancel/") ?? false;
 
+type RouterTree = [segment: string | [name: string, value: string, type: string], slots: { children?: RouterTree }];
+
+/** The path of the screen the router is actually rendering under this layout. */
+function renderedPath(tree: RouterTree) {
+  const parts: string[] = [];
+  for (let node = tree[1].children; node; node = node[1].children) {
+    const segment = Array.isArray(node[0]) ? node[0][1] : node[0];
+    if (!segment.startsWith("__") && !segment.startsWith("(")) parts.push(segment);
+  }
+  return decodeURIComponent(`/${parts.join("/")}`);
+}
+
 type Change = "rise" | "slide";
 
 /**
@@ -184,11 +196,12 @@ type Change = "rise" | "slide";
 function Stage({ ready, children }: { ready: boolean; children: ReactNode }) {
   const pathname = usePathname();
   const desktop = useDesktop();
-  const { move } = useMotionTokens();
+  const { move, reduced } = useMotionTokens();
   const mainRef = useRef<HTMLElement>(null);
   const cardRef = useRef<HTMLElement>(null);
   const [offset, setOffset] = useState(0);
   const [radius, setRadius] = useState<number>();
+  const tree = use(LayoutRouterContext)?.parentTree as RouterTree | undefined;
   const [paths, setPaths] = useState({ current: pathname, previous: null as string | null });
   if (paths.current !== pathname) setPaths({ current: pathname, previous: paths.current });
   const change: Change = isGuide(paths.previous) && isGuide(pathname) ? "slide" : "rise";
@@ -204,6 +217,13 @@ function Stage({ ready, children }: { ready: boolean; children: ReactNode }) {
     const space = window.innerHeight - main.offsetTop - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
     setOffset(Math.max(0, Math.round((space - card.offsetHeight) / 2)));
   }, []);
+
+  // Next keeps this layout alive but hidden while you're elsewhere (in auth, say), with whichever
+  // screen you left on. Hiding starts a new visit, so every screen starts afresh with nothing left
+  // to animate out, and nothing shows until the router is rendering the screen the URL points at.
+  const [visit, setVisit] = useState(0);
+  useLayoutEffect(() => () => setVisit((count) => count + 1), []);
+  const showing = !tree || renderedPath(tree) === pathname;
 
   // On first mount the card's ref attaches after the first screen has asked to be placed.
   useLayoutEffect(() => place(), [place, desktop]);
@@ -236,27 +256,30 @@ function Stage({ ready, children }: { ready: boolean; children: ReactNode }) {
             <motion.section
               ref={cardRef}
               layout={desktop}
-              initial={{ opacity: 0 }}
+              layoutId={desktop && !reduced ? FLOW_CARD : undefined}
+              initial={ready ? false : { opacity: 0 }}
               animate={{ opacity: ready ? 1 : 0 }}
               transition={transition("base")}
               style={desktop && radius !== undefined ? { borderRadius: radius } : undefined}
               className="sm:max-w-full sm:rounded-card sm:bg-card sm:shadow-card"
             >
-              <AnimatePresence mode="wait" custom={change}>
-                <motion.div
-                  key={pathname}
-                  layout={desktop}
-                  custom={change}
-                  variants={variants}
-                  initial="enter"
-                  animate={ready ? "shown" : "enter"}
-                  exit="exit"
-                  transition={transition("base")}
-                >
-                  <FrozenRouter>
-                    <FocusTitle>{children}</FocusTitle>
-                  </FrozenRouter>
-                </motion.div>
+              <AnimatePresence key={visit} mode="wait" custom={change}>
+                {showing && (
+                  <motion.div
+                    key={pathname}
+                    layout={desktop}
+                    custom={change}
+                    variants={variants}
+                    initial="enter"
+                    animate={ready ? "shown" : "enter"}
+                    exit="exit"
+                    transition={transition("base")}
+                  >
+                    <FrozenRouter>
+                      <FocusTitle>{children}</FocusTitle>
+                    </FrozenRouter>
+                  </motion.div>
+                )}
               </AnimatePresence>
             </motion.section>
           </LayoutGroup>

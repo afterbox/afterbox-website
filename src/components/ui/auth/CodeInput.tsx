@@ -4,7 +4,7 @@ import { useState, type ChangeEvent, type ClipboardEvent, type Ref, type Synthet
 
 export const CODE_LENGTH = 6;
 
-export type CodeInputState = "idle" | "error" | "checking" | "locked";
+export type CodeInputState = "idle" | "error" | "checking" | "locked" | "verified";
 
 type CodeInputProps = {
   value: string;
@@ -24,6 +24,7 @@ const boxStyles = {
   error: "border-alert bg-ground text-alert",
   checking: "border-line bg-card text-ink-soft/70",
   locked: "border-line bg-card text-ink-soft/70",
+  verified: "border-positive bg-ground text-ink",
 } as const;
 
 /**

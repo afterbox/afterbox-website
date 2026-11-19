@@ -53,6 +53,11 @@ function load(): OnboardingState {
   }
 }
 
+/** For screens outside onboarding (log in): whether this session already has a bank connected. */
+export function hasConnectedBank() {
+  return load().banks.length > 0;
+}
+
 function createActions(update: (recipe: (state: OnboardingState) => OnboardingState) => void) {
   return {
     /** A fresh run with the given mock scenario. */

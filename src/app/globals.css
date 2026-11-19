@@ -251,7 +251,8 @@
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    /* 0s, not a tiny duration: transition-property defaults to all, so any style change would lag a frame */
+    transition-duration: 0s !important;
   }
 }
 

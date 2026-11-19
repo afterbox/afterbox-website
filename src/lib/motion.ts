@@ -21,6 +21,9 @@ export const scale = { press: 0.98, pop: 0.9 } as const;
 /** Opacity of a row that's set to be cancelled. */
 export const dimmed = 0.55;
 
+/** The card that carries from the code screen into onboarding. */
+export const FLOW_CARD = "flow-card";
+
 export function transition(speed: Speed, delay = 0): Transition {
   return { duration: duration[speed], ease, delay };
 }
