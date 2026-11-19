@@ -6,6 +6,13 @@ import type { MouseEvent } from "react";
 import { ChevronLeftIcon } from "./icons";
 
 type NavigationLike = { currentEntry: { index: number } | null };
+type RouterLike = Pick<ReturnType<typeof useRouter>, "back" | "push">;
+
+/** Back in history when the previous page was ours, otherwise to `fallbackHref`. */
+export function goBack(router: RouterLike, fallbackHref: string) {
+  if (cameFromThisSite()) router.back();
+  else router.push(fallbackHref);
+}
 
 /** Whether the previous history entry is a page on this site. */
 function cameFromThisSite() {

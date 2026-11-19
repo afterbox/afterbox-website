@@ -277,9 +277,20 @@
 .auth-fade { animation: auth-fade 200ms ease-out both; }
 .auth-shake { animation: auth-shake 300ms ease-in-out; }
 
+/* Spinners fade in where a loading state appears. Timing comes from the onboarding motion variables (src/lib/motion.ts). */
+@keyframes spinner-turn {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  animation:
+    auth-fade var(--motion-fast, 200ms) var(--motion-ease, ease-out) both,
+    spinner-turn 0.8s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-enter { animation-name: auth-fade; animation-duration: 320ms !important; }
   .auth-fade { animation-duration: 200ms !important; }
   .auth-shake { animation: none !important; }
+  .spinner { animation: auth-fade var(--motion-fast, 200ms) var(--motion-ease, ease-out) both !important; }
   .auth-reveal { transition-property: opacity !important; transition-duration: 200ms !important; }
 }

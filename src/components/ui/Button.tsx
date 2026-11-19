@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { MouseEventHandler, ReactNode } from "react";
+import { pressable } from "@/lib/motion";
 import Spinner from "./Spinner";
 
 const variants = {
@@ -8,6 +9,8 @@ const variants = {
   // Used over video, photos and dark backgrounds, so the focus ring is light too.
   light: "bg-on-night text-ink hover:opacity-85 focus-visible:outline-on-night",
   card: "border border-line bg-card text-ink hover:bg-ground",
+  /** Quiet secondary inside a card, e.g. "Done" in onboarding. */
+  ground: "border border-line bg-ground text-ink hover:bg-card",
 } as const;
 
 const disabledStyles = {
@@ -15,6 +18,7 @@ const disabledStyles = {
   inkDeep: "data-disabled:bg-ink-deep/35",
   light: "data-disabled:opacity-35",
   card: "data-disabled:opacity-40",
+  ground: "data-disabled:opacity-40",
 } as const;
 
 const sizes = {
@@ -53,7 +57,7 @@ export default function Button({
   className = "",
   children,
 }: ButtonProps) {
-  const classes = `inline-flex cursor-pointer items-center justify-center gap-2.5 whitespace-nowrap rounded-full font-semibold transition-[opacity,background-color] duration-200 disabled:pointer-events-none disabled:cursor-default ${variants[variant]} ${disabledStyles[variant]} ${sizes[size]} ${className}`;
+  const classes = `inline-flex cursor-pointer items-center justify-center gap-2.5 whitespace-nowrap rounded-full font-semibold ${pressable} disabled:pointer-events-none disabled:cursor-default ${variants[variant]} ${disabledStyles[variant]} ${sizes[size]} ${className}`;
 
   if (href) {
     return (
@@ -72,7 +76,7 @@ export default function Button({
       onClick={onClick}
       className={classes}
     >
-      {loading ? <Spinner className={variant === "card" ? "text-ink-soft" : ""} /> : children}
+      {loading ? <Spinner className={variant === "card" || variant === "ground" ? "text-ink-soft" : ""} /> : children}
       <span role="status" className="sr-only">
         {loading ? loadingLabel : ""}
       </span>
