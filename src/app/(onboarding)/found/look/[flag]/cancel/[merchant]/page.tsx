@@ -7,7 +7,6 @@ import { getCancelGuideRoutes } from "@/lib/onboarding/mock";
 
 export const metadata: Metadata = {
   title: "How to cancel",
-  robots: { index: false },
 };
 
 export function generateStaticParams() {

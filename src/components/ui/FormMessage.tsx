@@ -69,7 +69,7 @@ export default function FormMessage({
             {shown.link && (
               <>
                 {" "}
-                <Link href={shown.link.href} className="font-semibold underline underline-offset-3">
+                <Link href={shown.link.href} name="form-message-link" className="font-semibold underline underline-offset-3">
                   {shown.link.label}
                 </Link>
               </>

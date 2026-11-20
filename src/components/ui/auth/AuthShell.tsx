@@ -38,6 +38,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
         <header className="flex h-[52px] shrink-0 items-center justify-between px-6 sm:h-[88px] sm:px-10">
           <Link
             href="/"
+            name="auth-wordmark"
             className={`text-[22px] font-semibold tracking-[-0.035em] text-ink sm:text-[26px] ${isVerify ? "max-sm:hidden" : ""}`}
           >
             afterbox
@@ -57,11 +58,11 @@ export default function AuthShell({ children }: { children: ReactNode }) {
         >
           <p className="text-center text-xs/[17px] text-ink-soft/70">
             By continuing you agree to our{" "}
-            <Link href="/terms" className="underline hover:text-ink-soft">
+            <Link href="/terms" name="auth-terms" className="underline hover:text-ink-soft">
               Terms
             </Link>{" "}
             and{" "}
-            <Link href="/privacy" className="underline hover:text-ink-soft">
+            <Link href="/privacy" name="auth-privacy" className="underline hover:text-ink-soft">
               Privacy Policy
             </Link>
             .

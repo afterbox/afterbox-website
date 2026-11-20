@@ -4,7 +4,6 @@ import AfterHydration from "@/components/ui/onboarding/AfterHydration";
 
 export const metadata: Metadata = {
   title: "Connection cancelled",
-  robots: { index: false },
 };
 
 export default function CancelledPage() {

@@ -13,7 +13,7 @@ export default function ThinScreen() {
       </IconBadge>
       <ScreenTitle className="mb-2">Not much to read here</ScreenTitle>
       <ScreenLead className="mb-[34px]">This account has very few transactions. Try the one you use every day.</ScreenLead>
-      <Button href="/connect/bank" variant="inkDeep" size="block">
+      <Button href="/connect/bank" name="thin-another-bank" variant="inkDeep" size="block">
         Connect another bank
       </Button>
     </OnboardingCard>

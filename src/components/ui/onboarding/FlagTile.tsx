@@ -16,6 +16,7 @@ export default function FlagTile({ flag, activeItems }: { flag: Flag; activeItem
   return (
     <Link
       href={`/found/look/${flag.id}`}
+      name={`flag-${flag.id}`}
       className={`group flex items-center gap-3 rounded-panel border border-warn/18 bg-warn/6 px-3.5 py-3 ${pressable}`}
     >
       <FlagIcon size={17} className="text-warn" />

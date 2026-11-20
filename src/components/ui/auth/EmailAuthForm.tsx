@@ -72,6 +72,10 @@ export default function EmailAuthForm({ mode, initialEmail, demo = null }: Email
   const busy = useRef(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    router.prefetch(verifyHref(mode, DEMO_EMAIL));
+  }, [mode, router]);
+
   // Next keeps a visited page alive but hidden; coming back should find the form ready, not mid-send.
   useEffect(
     () => () => {
@@ -189,6 +193,7 @@ export default function EmailAuthForm({ mode, initialEmail, demo = null }: Email
             {text.prompt}{" "}
             <Link
               href={authHref(text.switchTo, email)}
+              name={`auth-switch-${text.switchTo}`}
               className="font-semibold text-ink-deep underline underline-offset-3"
             >
               {text.switchLabel}

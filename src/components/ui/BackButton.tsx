@@ -38,6 +38,7 @@ export default function BackButton({ fallbackHref = "/" }: { fallbackHref?: stri
   return (
     <Link
       href={fallbackHref}
+      name="back"
       onClick={handleClick}
       aria-label="Back"
       className="flex items-center justify-center text-ink transition-colors duration-200 max-sm:-ml-[17px] max-sm:size-11 sm:size-10 sm:rounded-full sm:border sm:border-line sm:hover:bg-card"

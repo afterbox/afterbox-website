@@ -4,7 +4,6 @@ import AfterHydration from "@/components/ui/onboarding/AfterHydration";
 
 export const metadata: Metadata = {
   title: "Not much to read here",
-  robots: { index: false },
 };
 
 export default function ThinPage() {

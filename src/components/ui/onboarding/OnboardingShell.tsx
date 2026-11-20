@@ -93,6 +93,7 @@ function HeaderFrame({ setup }: { setup: HeaderSetup | null }) {
     <header className="grid h-[52px] shrink-0 grid-cols-[40px_1fr_40px] items-center px-5 sm:h-[88px] sm:grid-cols-[1fr_auto_1fr] sm:px-10">
       <Link
         href="/"
+        name="onboarding-wordmark"
         className="col-start-1 row-start-1 text-[26px] font-semibold tracking-[-0.035em] text-ink max-sm:hidden"
       >
         afterbox

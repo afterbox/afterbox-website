@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, use, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, use, useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { createSessionStore } from "@/lib/sessionStore";
 import { sum } from "./format";
 import { getFindings, getFlags, scenarios, type Finding, type Flag, type FlagId, type Scenario } from "./mock";
 
@@ -14,8 +15,11 @@ export type OnboardingState = {
   scenario: Scenario;
   /** In the order they were connected. */
   banks: ConnectedBank[];
-  /** The bank being connected right now: chosen, sent to Tink, not back yet. */
-  pending: { bankId: string; another: boolean } | null;
+  /**
+   * The bank being connected right now: chosen, sent to Tink, not back yet.
+   * `renew` is a connected bank renewing its access from the dashboard.
+   */
+  pending: { bankId: string; another: boolean; renew?: boolean } | null;
   /** A second bank that came back from Tink without connecting. */
   failedBankId: string | null;
   dismissedFlags: FlagId[];
@@ -42,26 +46,41 @@ export function readScenario(value: string | null): Scenario | null {
   return scenarios.find((scenario) => scenario === value) ?? null;
 }
 
-function load(): OnboardingState {
-  if (typeof sessionStorage === "undefined") return initialState;
-  try {
-    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "null") as Partial<OnboardingState> | null;
-    if (!saved || typeof saved !== "object") return initialState;
-    return { ...initialState, ...saved, scenario: readScenario(saved.scenario ?? null) ?? initialState.scenario };
-  } catch {
-    return initialState;
-  }
-}
+const store = createSessionStore<OnboardingState>(STORAGE_KEY, initialState, (saved) => {
+  if (!saved || typeof saved !== "object") return initialState;
+  const partial = saved as Partial<OnboardingState>;
+  return { ...initialState, ...partial, scenario: readScenario(partial.scenario ?? null) ?? initialState.scenario };
+});
 
 /** For screens outside onboarding (log in): whether this session already has a bank connected. */
 export function hasConnectedBank() {
-  return load().banks.length > 0;
+  return store.get().banks.length > 0;
+}
+
+/** The onboarding state as it is now, for code outside React (the dashboard's seed). */
+export function readOnboarding() {
+  return store.get();
 }
 
 function createActions(update: (recipe: (state: OnboardingState) => OnboardingState) => void) {
   return {
     /** A fresh run with the given mock scenario. */
     start: (scenario: Scenario) => update(() => ({ ...initialState, scenario })),
+    /** Back to nothing, as after logging out. */
+    reset: () => update(() => initialState),
+    /** Sends a connected bank back through Tink Link to renew its access. */
+    renewBank: (bankId: string) =>
+      update((state) => ({ ...state, pending: { bankId, another: true, renew: true }, failedBankId: null })),
+    /** Fills in what a dashboard scenario implies onboarding found. */
+    seed: (scenario: Scenario, bankIds: string[], cancelled: string[]) =>
+      update(() => ({
+        ...initialState,
+        scenario,
+        banks: bankIds.map((id) => ({ id, code: "mock" })),
+        cancelled,
+      })),
+    /** A disconnected bank stops counting as connected. */
+    removeBank: (bankId: string) => update((state) => ({ ...state, banks: state.banks.filter((bank) => bank.id !== bankId) })),
     /** The first bank starts over; another bank adds to what's there. */
     chooseBank: (bankId: string, another: boolean) =>
       update((state) =>
@@ -80,6 +99,7 @@ function createActions(update: (recipe: (state: OnboardingState) => OnboardingSt
             }
           : state,
       ),
+    cancelPending: () => update((state) => ({ ...state, pending: null })),
     failPending: () => update((state) => ({ ...state, failedBankId: state.pending?.bankId ?? null, pending: null })),
     retryFailed: () =>
       update((state) =>
@@ -97,20 +117,20 @@ type OnboardingContextValue = { state: OnboardingState; actions: ReturnType<type
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
+const actions = createActions(store.set);
+
 /**
  * Session-only: closing the tab starts over. The provider renders nothing of its own, so it can
  * start from the defaults on the server; what reads the state waits for `useHydrated()`.
+ * Every provider reads the same store, so onboarding and the dashboard never disagree.
  */
 export function OnboardingProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState(load);
-  const actions = useMemo(() => createActions(setState), []);
-
-  useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
-
-  return <OnboardingContext value={{ state, actions }}>{children}</OnboardingContext>;
+  const state = store.useValue();
+  const value = useMemo(() => ({ state, actions }), [state]);
+  return <OnboardingContext value={value}>{children}</OnboardingContext>;
 }
+
+export const onboardingActions = actions;
 
 const subscribeToNothing = () => () => {};
 

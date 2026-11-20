@@ -31,6 +31,8 @@
   --color-warn: #8a4a12;
   --color-alert: #a3313b;
 
+  --color-scrim: rgb(21 26 36 / 0.32); /* dim behind desktop modals and mobile sheets */
+
   /* Type: Host Grotesk only (loaded in layout.tsx) */
   --font-sans: var(--font-host-grotesk), system-ui, -apple-system, "Segoe UI", sans-serif;
 
@@ -55,6 +57,7 @@
   --radius-card: 1.5rem;          /* 24px: media frames, cards */
   --radius-panel: 1.125rem;       /* 18px: floating UI cards */
   --radius-field: 0.625rem;       /* 10px: inputs */
+  --radius-sheet: 1.75rem;        /* 28px: mobile sheet top corners */
 
   /* Spacing helpers */
   --spacing-gutter: 0.75rem;      /* 12px media inset on desktop (8px on mobile) */
@@ -64,6 +67,10 @@
   /* Shadow */
   --shadow-float: 0 12px 32px rgb(21 26 36 / 0.16);
   --shadow-card: 0 0 0 1px var(--color-line), 0 30px 70px -20px rgb(21 26 36 / 0.12); /* auth card */
+  --shadow-pop: 0 30px 70px -20px rgb(21 26 36 / 0.30);   /* desktop modals, popovers, date picker */
+  --shadow-rail: 1px 0 0 var(--color-line), 24px 0 48px -24px rgb(21 26 36 / 0.18);   /* rail when open */
+  --shadow-lift: 0 0 0 1px var(--color-line), 0 10px 24px -14px rgb(21 26 36 / 0.18);   /* Next up front card */
+  --shadow-knob: 0 1px 3px rgb(21 26 36 / 0.20);   /* toggle knob */
 
   /* Motion (security key animation and its living background) */
   --animate-drift-a: drift-a 16s ease-in-out infinite;
@@ -288,7 +295,60 @@
     spinner-turn 0.8s linear infinite;
 }
 
+/*
+  Dashboard (src/app/(dashboard)), from the references (docs/design/dashboard-*.html):
+  skeleton shimmer (ab-sk), the new-finds glow drift and the scanning beam.
+  All three hold still under reduced motion.
+*/
+@keyframes ab-sh {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@keyframes ab-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-120px, 40px) scale(1.15); }
+}
+@keyframes ab-scan {
+  0% { top: -12%; }
+  100% { top: 100%; }
+}
+.ab-sk {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-line) 75%, transparent),
+    color-mix(in srgb, var(--color-line) 35%, transparent),
+    color-mix(in srgb, var(--color-line) 75%, transparent)
+  );
+  background-size: 200% 100%;
+  animation: ab-sh 1.4s linear infinite;
+}
+.ab-drift { animation: ab-drift 9s ease-in-out infinite; }
+.ab-beam {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  height: 18%;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-ink-deep) 0%, transparent),
+    color-mix(in srgb, var(--color-ink-deep) 16%, transparent) 70%,
+    color-mix(in srgb, var(--color-ink-deep) 55%, transparent) 98%,
+    color-mix(in srgb, var(--color-ink-deep) 0%, transparent)
+  );
+  animation: ab-scan 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+/* While a sheet, modal or focus page is open, the page behind doesn't scroll (the window on desktop, the frame on phones). */
+html[data-locked] { overflow: hidden; }
+html[data-locked] body { padding-right: var(--scrollbar-gap, 0px); }
+html[data-locked] [data-scroller] { overflow: hidden; }
+/* Mobile sheets and focus pages sit above the home indicator. */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
+  .ab-sk, .ab-drift { animation: none !important; }
+  .ab-beam { animation: none !important; top: 40%; }
   .auth-enter { animation-name: auth-fade; animation-duration: 320ms !important; }
   .auth-fade { animation-duration: 200ms !important; }
   .auth-shake { animation: none !important; }

@@ -66,7 +66,7 @@ export default function StartScreen() {
         </motion.li>
       </ul>
 
-      <Button href="/connect" variant="inkDeep" size="block">
+      <Button href="/connect" name="start-find-mine" variant="inkDeep" size="block">
         Find mine
       </Button>
     </OnboardingCard>

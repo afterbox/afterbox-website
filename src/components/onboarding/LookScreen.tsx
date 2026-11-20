@@ -33,13 +33,22 @@ export default function LookScreen({ flagId }: { flagId: FlagId }) {
   if (current && current !== flag) setFlag(current);
   const leaving = useRef(false);
 
+  const plan = flag ? planFor(flag, state) : [];
+  const firstToCancel = flag?.items.find((item) => plan.includes(item.id) && !isCancelled(item.id))?.id;
+
+  useEffect(() => {
+    router.prefetch("/found");
+  }, [router]);
+
+  useEffect(() => {
+    if (flag && firstToCancel) router.prefetch(guideHref(flag.id, firstToCancel));
+  }, [flag, firstToCancel, router]);
+
   useEffect(() => {
     if (!current && !leaving.current) router.replace("/found");
   }, [current, router]);
 
   if (!flag) return null;
-
-  const plan = planFor(flag, state);
 
   function dismiss() {
     leaving.current = true;
@@ -68,11 +77,11 @@ export default function LookScreen({ flagId }: { flagId: FlagId }) {
           ))}
         </ul>
         <SavingBox
-          label="If you cancel one"
+          label="Cancel one and you save"
           perYear={yearly(monthlySaving(flag, plan))}
           note="Check for a cancellation fee first"
         />
-        <Button href={guideHref(flag.id, plan[0])} variant="inkDeep" size="block">
+        <Button href={guideHref(flag.id, plan[0])} name="look-cancel-guide" variant="inkDeep" size="block">
           Show me how to cancel
         </Button>
         <QuietLink onClick={dismiss} className="mt-[18px]">
@@ -118,7 +127,11 @@ export default function LookScreen({ flagId }: { flagId: FlagId }) {
           />
         ))}
       </ul>
-      <SavingBox label={`Cancel ${toCancel.length}`} perYear={yearly(monthly)} note={`${formatMoney(monthly)} a month`} />
+      <SavingBox
+        label={`Cancel ${toCancel.length} and you save`}
+        perYear={yearly(monthly)}
+        note={`That’s ${formatMoney(monthly)} a month`}
+      />
       <Button
         variant="inkDeep"
         size="block"

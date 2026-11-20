@@ -5,7 +5,7 @@ import { DEMO_EMAIL } from "@/lib/mock-auth";
 
 export const metadata: Metadata = {
   title: "Check your email",
-  robots: { index: false },
+  robots: { index: false, follow: false },
 };
 
 export default function VerifyPage() {
