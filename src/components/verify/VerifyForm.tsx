@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import Link from "next/link";
+import { Link } from "@/components/ui/Links";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import AuthCard from "@/components/ui/auth/AuthCard";

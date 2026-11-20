@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import Link from "next/link";
+import { Link } from "@/components/ui/Links";
 import { ChevronRightIcon } from "@/components/ui/icons";
 import { formatMoney } from "@/lib/onboarding/format";
 import type { Category } from "@/lib/onboarding/mock";
@@ -47,9 +47,8 @@ export default function CategoryList({ rows, columns = false, enterDelay = 0, ma
           <motion.li
             key={category.id}
             {...reveal.rise(enterDelay + index * stagger.base)}
-            className={`border-line ${last ? "" : "border-b"} ${columns && columnStart ? "sm:border-t" : ""} ${
-              columns && columnEnd ? "sm:border-b-0" : ""
-            }`}
+            className={`border-line ${last ? "" : "border-b"} ${columns && columnStart ? "sm:border-t" : ""} ${columns && columnEnd ? "sm:border-b-0" : ""
+              }`}
           >
             <Link href={`/found/${category.id}`} className={`group flex items-center gap-3 py-3.5 ${pressable}`}>
               <IconSquare>

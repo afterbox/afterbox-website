@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/ui/Links";
 import { useRouter } from "next/navigation";
 import type { MouseEvent } from "react";
 import { ChevronLeftIcon } from "./icons";

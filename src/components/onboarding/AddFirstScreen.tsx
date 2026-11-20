@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/ui/Links";
 import { CameraIcon, CardIcon, DocumentIcon, HomeIcon, MoneyIcon, TrendIcon, UmbrellaIcon } from "@/components/ui/icons";
 import IconSquare from "@/components/ui/onboarding/IconSquare";
 import { Rise } from "@/components/ui/onboarding/Motion";

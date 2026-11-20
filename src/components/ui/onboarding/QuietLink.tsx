@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/ui/Links";
 import type { ReactNode } from "react";
 import { pressable } from "@/lib/motion";
 

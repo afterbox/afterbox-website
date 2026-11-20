@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import Link from "next/link";
+import { Link } from "@/components/ui/Links";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Button from "@/components/ui/Button";
@@ -28,7 +28,7 @@ function share(count: number) {
   if (!navigator.share) return;
   navigator
     .share({ title: "afterbox", text: `afterbox found ${count} things I own or pay for.`, url: window.location.origin })
-    .catch(() => {});
+    .catch(() => { });
 }
 
 /** 08, 14 (few things), 17 (two banks) and 18 (second bank failed). */

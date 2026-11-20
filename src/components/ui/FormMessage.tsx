@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/ui/Links";
 import { useState, type ReactNode } from "react";
 import { AlertIcon, CheckIcon, ClockIcon, WifiOffIcon } from "./icons";
 
@@ -9,9 +9,8 @@ export function Reveal({ open, children }: { open: boolean; children: ReactNode 
   return (
     <div
       inert={!open}
-      className={`auth-reveal grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
-        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-      }`}
+      className={`auth-reveal grid transition-[grid-template-rows,opacity] duration-200 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
     >
       <div className="min-h-0 overflow-hidden">{children}</div>
     </div>
@@ -61,9 +60,8 @@ export default function FormMessage({
       <Reveal open={Boolean(message)}>
         <p
           id={id}
-          className={`flex items-center gap-[7px] text-[13px]/[18px] ${
-            shown.tone === "error" ? "text-alert" : "text-positive"
-          } ${align === "center" ? "justify-center text-center" : ""} ${gapClassName}`}
+          className={`flex items-center gap-[7px] text-[13px]/[18px] ${shown.tone === "error" ? "text-alert" : "text-positive"
+            } ${align === "center" ? "justify-center text-center" : ""} ${gapClassName}`}
         >
           <Icon size={15} />
           <span>

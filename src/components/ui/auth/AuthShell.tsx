@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/ui/Links";
 import { usePathname, useSearchParams } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useState, type ReactNode } from "react";
 import BackButton from "@/components/ui/BackButton";
 import { authHref, DEMO_EMAIL, readMode } from "@/lib/mock-auth";
 
-const AuthShellContext = createContext<{ setLeaving: (leaving: boolean) => void }>({ setLeaving: () => {} });
+const AuthShellContext = createContext<{ setLeaving: (leaving: boolean) => void }>({ setLeaving: () => { } });
 
 /** Lets a screen fade the Back button and terms out as it hands over to onboarding. */
 export const useAuthShell = () => useContext(AuthShellContext);
@@ -52,9 +52,8 @@ export default function AuthShell({ children }: { children: ReactNode }) {
         </header>
         <main className="flex flex-1 flex-col">{children}</main>
         <footer
-          className={`shrink-0 px-6 pt-6 pb-10 sm:flex sm:h-[88px] sm:items-end sm:justify-center sm:p-0 sm:pb-8 ${fade} ${
-            isVerify ? "max-sm:hidden" : ""
-          }`}
+          className={`shrink-0 px-6 pt-6 pb-10 sm:flex sm:h-[88px] sm:items-end sm:justify-center sm:p-0 sm:pb-8 ${fade} ${isVerify ? "max-sm:hidden" : ""
+            }`}
         >
           <p className="text-center text-xs/[17px] text-ink-soft/70">
             By continuing you agree to our{" "}

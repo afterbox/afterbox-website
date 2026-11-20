@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/ui/Links";
 import type { MouseEventHandler, ReactNode } from "react";
 import { pressable } from "@/lib/motion";
 import Spinner from "./Spinner";

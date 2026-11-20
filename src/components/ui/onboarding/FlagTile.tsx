@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/ui/Links";
 import { ChevronRightIcon, FlagIcon } from "@/components/ui/icons";
 import { formatMoney, sum } from "@/lib/onboarding/format";
 import { pressable } from "@/lib/motion";
