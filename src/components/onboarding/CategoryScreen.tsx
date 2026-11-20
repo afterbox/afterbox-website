@@ -19,6 +19,10 @@ export default function CategoryScreen({ categoryId }: { categoryId: CategoryId 
   const items = findings.filter((finding) => finding.category === categoryId);
 
   useEffect(() => {
+    router.prefetch("/found");
+  }, [router]);
+
+  useEffect(() => {
     if (!category || items.length === 0) router.replace("/found");
   }, [category, items.length, router]);
 
@@ -68,7 +72,7 @@ export default function CategoryScreen({ categoryId }: { categoryId: CategoryId 
         })}
       </ul>
 
-      <Button href="/found" variant="ground" size="block">
+      <Button href="/found" name="category-done" variant="ground" size="block">
         Done
       </Button>
     </OnboardingCard>

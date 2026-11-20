@@ -167,6 +167,7 @@ export function VerifyScreen({ email, from, demo, mock }: VerifyScreenProps) {
             <span className="truncate">{email}</span>
             <Link
               href={backHref}
+              name="verify-change-email"
               aria-label="Use a different email"
               className="flex size-[26px] flex-none items-center justify-center rounded-full text-ink-soft transition-colors duration-200 hover:bg-card hover:text-ink"
             >

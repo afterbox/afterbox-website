@@ -50,7 +50,7 @@ export default function CategoryList({ rows, columns = false, enterDelay = 0, ma
             className={`border-line ${last ? "" : "border-b"} ${columns && columnStart ? "sm:border-t" : ""} ${columns && columnEnd ? "sm:border-b-0" : ""
               }`}
           >
-            <Link href={`/found/${category.id}`} className={`group flex items-center gap-3 py-3.5 ${pressable}`}>
+            <Link href={`/found/${category.id}`} name={`found-${category.id}`} className={`group flex items-center gap-3 py-3.5 ${pressable}`}>
               <IconSquare>
                 <CategoryGlyph icon={category.icon} size={16} />
               </IconSquare>

@@ -121,6 +121,7 @@ export default function MobileMenu({ links }: { links: MenuLink[] }) {
         <div className="flex items-center justify-between py-3 pr-3 pl-5">
           <Link
             href="/"
+            name="menu-wordmark"
             onClick={() => close()}
             className="text-[22px] font-semibold tracking-[-0.035em]"
           >
@@ -154,6 +155,7 @@ export default function MobileMenu({ links }: { links: MenuLink[] }) {
             <li key={link.href} className={linkMotion} style={{ transitionDelay: `${i * 40}ms` }}>
               <Link
                 href={link.href}
+                name={`menu-${link.label.toLowerCase().replaceAll(" ", "-")}`}
                 onClick={(e) => goTo(e, link.href)}
                 className="block py-3 text-[32px]/[36px] tracking-[-0.03em]"
               >
@@ -164,7 +166,7 @@ export default function MobileMenu({ links }: { links: MenuLink[] }) {
         </ul>
 
         <div className="mt-auto px-5 pb-6">
-          <Button href="/signup" variant="light" size="lg" className="w-full">
+          <Button href="/signup" name="menu-signup" variant="light" size="lg" className="w-full">
             Start your record
           </Button>
         </div>

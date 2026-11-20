@@ -4,6 +4,8 @@ import { pressable } from "@/lib/motion";
 
 type QuietLinkProps = {
   href?: string;
+  /** Short name for the link's prefetch. */
+  name?: string;
   onClick?: () => void;
   /** Space above, e.g. "mt-4". */
   className?: string;
@@ -13,11 +15,11 @@ type QuietLinkProps = {
 const linkClasses = `inline-block cursor-pointer font-semibold text-ink-soft hover:text-ink ${pressable}`;
 
 /** The centred secondary action under a button: 13px on phones, 14px from 640px. */
-export default function QuietLink({ href, onClick, className = "", children }: QuietLinkProps) {
+export default function QuietLink({ href, name = "quiet-link", onClick, className = "", children }: QuietLinkProps) {
   return (
     <p className={`text-center text-[13px] sm:text-sm/[normal] ${className}`}>
       {href ? (
-        <Link href={href} className={linkClasses}>
+        <Link href={href} name={name} className={linkClasses}>
           {children}
         </Link>
       ) : (

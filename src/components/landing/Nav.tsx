@@ -17,19 +17,19 @@ export default function Nav() {
         aria-label="Main"
         className="mx-auto flex max-w-[1416px] items-center justify-between gap-6 py-3 pr-3 pl-5 md:px-9 md:py-6"
       >
-        <Link href="/" className="text-[22px] font-semibold tracking-[-0.035em] md:text-[26px]">
+        <Link href="/" name="nav-wordmark" className="text-[22px] font-semibold tracking-[-0.035em] md:text-[26px]">
           afterbox
         </Link>
 
         <div className="hidden gap-9 text-[15px] font-medium md:flex">
           {links.map((link) => (
-            <Link key={link.href} href={link.href} className="py-2 hover:opacity-85">
+            <Link key={link.href} href={link.href} name={`nav-${link.label.toLowerCase().replaceAll(" ", "-")}`} className="py-2 hover:opacity-85">
               {link.label}
             </Link>
           ))}
         </div>
 
-        <Button href="/signup" variant="light" size="sm" className="max-md:hidden">
+        <Button href="/signup" name="nav-signup" variant="light" size="sm" className="max-md:hidden">
           Start your record
         </Button>
 

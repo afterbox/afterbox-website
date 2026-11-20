@@ -4,7 +4,6 @@ import AfterHydration from "@/components/ui/onboarding/AfterHydration";
 
 export const metadata: Metadata = {
   title: "Add things yourself",
-  robots: { index: false },
 };
 
 export default function AddPage() {

@@ -7,7 +7,6 @@ import { getFlagIds } from "@/lib/onboarding/mock";
 
 export const metadata: Metadata = {
   title: "Worth a look",
-  robots: { index: false },
 };
 
 export function generateStaticParams() {

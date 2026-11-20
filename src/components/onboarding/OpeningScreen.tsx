@@ -24,7 +24,15 @@ export default function OpeningScreen() {
   const router = useRouter();
   const { state } = useOnboarding();
   const bank = getBank(state.pending?.bankId);
-  const pickerHref = state.pending?.another ? "/connect/bank?another=1" : "/connect/bank";
+  const pickerHref = state.pending?.renew
+    ? `/settings/banks/${state.pending.bankId}`
+    : state.pending?.another
+      ? "/connect/bank?another=1"
+      : "/connect/bank";
+
+  useEffect(() => {
+    router.prefetch(pickerHref);
+  }, [pickerHref, router]);
 
   useEffect(() => {
     if (!bank) {

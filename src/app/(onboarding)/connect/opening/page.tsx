@@ -4,7 +4,6 @@ import AfterHydration from "@/components/ui/onboarding/AfterHydration";
 
 export const metadata: Metadata = {
   title: "Opening your bank",
-  robots: { index: false },
 };
 
 export default function OpeningPage() {

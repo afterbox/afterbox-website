@@ -45,13 +45,13 @@ export default function ConnectScreen() {
         ))}
       </ul>
 
-      <Button href="/connect/bank" variant="inkDeep" size="block">
+      <Button href="/connect/bank" name="connect-choose-bank" variant="inkDeep" size="block">
         Choose your bank
       </Button>
       <TinkNote className="mt-4" />
       <p className="mt-2.5 text-center text-[13px] text-ink-soft">
         UK banks only, for now ·{" "}
-        <Link href="/add" className="font-semibold underline underline-offset-3 transition-colors duration-[var(--motion-fast)] ease-[var(--motion-ease)] hover:text-ink">
+        <Link href="/add" name="connect-not-uk" className="font-semibold underline underline-offset-3 transition-colors duration-[var(--motion-fast)] ease-[var(--motion-ease)] hover:text-ink">
           Not in the UK?
         </Link>
       </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { CheckIcon } from "@/components/ui/icons";
 import BankPicker from "@/components/ui/onboarding/BankPicker";
 import Monogram from "@/components/ui/onboarding/Monogram";
@@ -22,6 +23,10 @@ export default function BankScreen() {
   const featured = getBanks()
     .slice(0, FEATURED_BANKS)
     .filter((bank) => !connected.includes(bank));
+
+  useEffect(() => {
+    router.prefetch("/connect/opening");
+  }, [router]);
 
   function choose(bank: Bank) {
     actions.chooseBank(bank.id, another);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import Button from "@/components/ui/Button";
 import { CloseIcon } from "@/components/ui/icons";
 import IconBadge, { BADGE_ICON } from "@/components/ui/onboarding/IconBadge";
@@ -14,6 +15,11 @@ export default function CancelledScreen() {
   const router = useRouter();
   const { state, actions } = useOnboarding();
   const pending = state.pending;
+
+  useEffect(() => {
+    router.prefetch("/connect/opening");
+    router.prefetch("/connect/bank");
+  }, [router]);
 
   function retry() {
     if (pending) {

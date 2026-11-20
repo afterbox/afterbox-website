@@ -26,6 +26,11 @@ export default function ReadingScreen() {
   const reveal = useReveal();
 
   useEffect(() => {
+    router.prefetch(next);
+    router.prefetch("/connect/bank");
+  }, [next, router]);
+
+  useEffect(() => {
     if (!bank) {
       router.replace("/connect/bank");
       return;

@@ -24,7 +24,7 @@ export default function Hero() {
           <p className="mb-7 text-[17px]/[26px] text-shadow-[0_2px_24px_rgb(10_16_32/0.35)] md:mb-9 md:text-lead">
             So the people you trust can find it when it matters.
           </p>
-          <Button href="/signup" variant="light" size="lg" className="w-full md:w-auto">
+          <Button href="/signup" name="hero-signup" variant="light" size="lg" className="w-full md:w-auto">
             Start your record
           </Button>
         </div>

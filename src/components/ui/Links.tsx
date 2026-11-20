@@ -3,7 +3,7 @@ import type { LinkProps } from "next/link";
 import NextLink from "next/link";
 import { type ForesightRegisterOptionsWithoutElement } from "js.foresight";
 import { useRouter } from "next/navigation";
-import { useMemo, type AnchorHTMLAttributes } from "react";
+import { useCallback, useMemo, type AnchorHTMLAttributes, type Ref } from "react";
 import useForesight from "@/hooks/useForsight";
 
 interface ForesightLinkProps
@@ -11,6 +11,7 @@ interface ForesightLinkProps
     Omit<ForesightRegisterOptionsWithoutElement, "callback">,
     Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps | "name"> {
     children: React.ReactNode;
+    ref?: Ref<HTMLAnchorElement>;
 }
 
 export function Link({
@@ -20,6 +21,7 @@ export function Link({
     meta,
     reactivateAfter,
     enabled,
+    ref,
     ...props
 }: ForesightLinkProps) {
     const router = useRouter();
@@ -36,9 +38,17 @@ export function Link({
         [router, href, hitSlop, name, meta, reactivateAfter, enabled],
     );
     const { elementRef } = useForesight<HTMLAnchorElement>(options);
+    const setRef = useCallback(
+        (node: HTMLAnchorElement | null) => {
+            elementRef.current = node;
+            if (typeof ref === "function") return ref(node);
+            if (ref) ref.current = node;
+        },
+        [elementRef, ref],
+    );
 
     return (
-        <NextLink {...props} ref={elementRef} prefetch={false}>
+        <NextLink {...props} ref={setRef} prefetch={false}>
             {children}
         </NextLink>
     );

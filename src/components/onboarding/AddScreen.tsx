@@ -46,7 +46,7 @@ export default function AddScreen() {
       </motion.label>
 
       <motion.div {...reveal.rise(2 * stagger.base)}>
-        <Button href="/add/first" variant="inkDeep" size="block">
+        <Button href="/add/first" name="add-continue" variant="inkDeep" size="block">
           Continue
         </Button>
       </motion.div>

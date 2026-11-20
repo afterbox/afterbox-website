@@ -58,17 +58,20 @@ export function Rise({
 export function useCollapse({ drop = false, delay = 0 } = {}) {
   const { move, resize } = useMotionTokens();
   return {
-    style: { clipPath: "inset(-4px)" },
-    initial: { opacity: 0, height: 0, y: drop ? -move(distance.drop) : 0 },
+    initial: { opacity: 0, height: 0, y: drop ? -move(distance.drop) : 0, clipPath: "inset(-4px)" },
     animate: {
       opacity: 1,
       height: "auto",
       y: 0,
+      clipPath: "inset(-4px)",
+      // Once open, popovers inside (the date picker) can reach past the edge.
+      transitionEnd: { clipPath: "none" },
       transition: { ...transition("base", delay), height: resize("base", delay) },
     },
     exit: {
       opacity: 0,
       height: 0,
+      clipPath: "inset(-4px)",
       transition: { ...transition("fast"), height: resize("fast") },
     },
   };

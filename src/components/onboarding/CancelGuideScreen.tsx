@@ -31,6 +31,14 @@ export default function CancelGuideScreen({ flagId, merchant }: { flagId: FlagId
   const [done, setDone] = useState(false);
   const reveal = useReveal();
 
+  const nextToCancel = sequence.slice(position + 1).find((id) => !isCancelled(id));
+  const afterHref = nextToCancel ? guideHref(flagId, nextToCancel) : "/found";
+
+  useEffect(() => {
+    router.prefetch(afterHref);
+    router.prefetch("/found");
+  }, [afterHref, router]);
+
   useEffect(() => {
     if (!guide || !finding) router.replace("/found");
   }, [guide, finding, router]);
@@ -41,10 +49,9 @@ export default function CancelGuideScreen({ flagId, merchant }: { flagId: FlagId
   function cancelled() {
     if (done) return;
     setDone(true);
-    const next = sequence.slice(position + 1).find((id) => !isCancelled(id));
     setTimeout(() => {
       actions.markCancelled(merchant);
-      router.push(next ? guideHref(flagId, next) : "/found");
+      router.push(afterHref);
     }, duration.slow * 1000);
   }
 

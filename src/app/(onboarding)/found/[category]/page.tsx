@@ -7,7 +7,6 @@ import { getCategories, getCategory } from "@/lib/onboarding/mock";
 
 export const metadata: Metadata = {
   title: "What we found",
-  robots: { index: false },
 };
 
 export function generateStaticParams() {

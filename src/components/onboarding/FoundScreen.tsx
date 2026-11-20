@@ -44,6 +44,11 @@ export default function FoundScreen() {
   const reveal = useReveal();
 
   useEffect(() => {
+    router.prefetch("/connect/opening");
+    router.prefetch("/connect/bank");
+  }, [router]);
+
+  useEffect(() => {
     if (banks.length === 0) router.replace("/connect/bank");
   }, [banks.length, router]);
 
@@ -140,6 +145,7 @@ export default function FoundScreen() {
         <MotionLink
           {...reveal.rise(restFrom)}
           href={ADD_BANK_HREF}
+          name="found-add-bank-tile"
           className={`group mb-7 flex items-center gap-3.5 rounded-panel border border-line bg-ground px-[18px] py-4 ${pressable}`}
         >
           <IconSquare size="lg">
@@ -154,7 +160,7 @@ export default function FoundScreen() {
       )}
 
       <motion.div {...reveal.rise(restFrom + (few ? stagger.base : 0))}>
-        <Button href="/" variant="inkDeep" size="block">
+        <Button href="/home" name="found-add-all" variant="inkDeep" size="block">
           Add all to my record
         </Button>
       </motion.div>
@@ -164,7 +170,7 @@ export default function FoundScreen() {
           {...reveal.rise(restFrom + stagger.base)}
           className="mt-[18px] flex flex-wrap items-center justify-center gap-x-1.5 text-center text-[13px] text-ink-soft sm:text-sm/[normal]">
           Bills paid from another account?
-          <Link href={ADD_BANK_HREF} className="font-semibold text-ink">
+          <Link href={ADD_BANK_HREF} name="found-add-bank" className="font-semibold text-ink">
             Add that bank
           </Link>
         </motion.p>
