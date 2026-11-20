@@ -30,7 +30,7 @@ export function Tile({ summary, delay = 0 }: { summary: CategorySummary; delay?:
   return (
     <motion.li initial={{ opacity: 0, y: move(distance.rise) }} animate={{ opacity: 1, y: 0 }} transition={transition("base", delay)}>
       <Link
-        href={`/record/${summary.id}?from=home`}
+        href={`/home/record/${summary.id}?from=home`}
         name={`tile-${summary.id}`}
         className={`flex h-full flex-col gap-3.5 rounded-panel bg-card p-[18px] ring-1 ring-line hover:ring-ink-soft/30 sm:p-5 ${pressable} ${liftable}`}
       >

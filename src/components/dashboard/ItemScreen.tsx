@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { notFound, useParams } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { CameraIcon, CheckIcon, ClockIcon, FlagIcon } from "@/components/ui/icons";
 import { Link } from "@/components/ui/Links";
 import Monogram from "@/components/ui/onboarding/Monogram";
@@ -55,7 +55,7 @@ function ItemView({ id, state }: { id: string; state: DashboardState }) {
   return (
     <Page>
       {picker.input}
-      <BackLink href={`/record/${item.category}`} name="item-back" label={category.label} className="max-sm:hidden" />
+      <BackLink href={`/home/record/${item.category}`} name="item-back" label={category.label} className="max-sm:hidden" />
       <div className="mb-6 flex items-center gap-4">
         <Monogram letters={item.monogram} size="lg" />
         <div className="min-w-0">
@@ -130,7 +130,8 @@ function ItemView({ id, state }: { id: string; state: DashboardState }) {
 }
 
 function ItemFromParams({ state }: { state: DashboardState }) {
-  const { itemId } = useParams<{ itemId: string }>();
+  // Kept from the first render: while this page fades out, the params already belong to the next one.
+  const [itemId] = useState(useParams<{ itemId: string }>().itemId);
   return <ItemView id={itemId} state={state} />;
 }
 

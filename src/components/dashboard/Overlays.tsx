@@ -924,7 +924,7 @@ function DisconnectOverlay({ state }: { state: DashboardState }) {
   const shown = view ?? kept;
 
   useEffect(() => {
-    router.prefetch("/settings");
+    router.prefetch("/home/settings");
   }, [router]);
 
   useEffect(() => {
@@ -938,7 +938,7 @@ function DisconnectOverlay({ state }: { state: DashboardState }) {
     setError(null);
     try {
       await disconnectBank(bank.id);
-      closeTo("/settings");
+      closeTo("/home/settings");
     } catch (caught) {
       setError(message(caught));
       setBusy(false);

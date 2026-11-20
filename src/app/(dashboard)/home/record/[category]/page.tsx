@@ -11,7 +11,7 @@ export function generateStaticParams() {
   return getCategories().map((category) => ({ category: category.id }));
 }
 
-export default async function CategoryPage({ params }: PageProps<"/record/[category]">) {
+export default async function CategoryPage({ params }: PageProps<"/home/record/[category]">) {
   const category = getCategory((await params).category);
   if (!category) notFound();
   return <CategoryScreen id={category.id} />;

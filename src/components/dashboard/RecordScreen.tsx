@@ -107,7 +107,7 @@ function Record({ state }: { state: DashboardState }) {
                     <ItemRow
                       {...(row.find
                         ? { onClick: () => open("review", { find: row.item.id }) }
-                        : { href: `/record/${row.item.category}/${row.item.id}`, name: `record-${row.item.id}` })}
+                        : { href: `/home/record/${row.item.category}/${row.item.id}`, name: `record-${row.item.id}` })}
                       monogram={row.item.monogram}
                       title={itemTitle(row.item)}
                       sub={[row.item.provider ? row.item.name : null, amountText(row.item)].filter(Boolean).join(" · ") || null}

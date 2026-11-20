@@ -33,7 +33,7 @@ export default function CallbackScreen() {
     const code = params.get("code");
 
     if (pending?.renew) {
-      const bankHref = `/settings/banks/${pending.bankId}`;
+      const bankHref = `/home/settings/banks/${pending.bankId}`;
       if (valid && code) {
         actions.connectPending(code);
         router.replace(`${bankHref}?renewed=1`);

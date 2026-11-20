@@ -17,17 +17,20 @@ import { Toaster } from "./toast";
 
 type Section = "home" | "record" | "people" | "settings";
 
-function sectionOf(pathname: string, from: string | null): Section {
-  if (pathname.startsWith("/settings")) return "settings";
-  if (pathname.startsWith("/people")) return "people";
-  if (pathname.startsWith("/record")) return from === "home" ? "home" : "record";
-  return "home";
+/** Path segments after /home: "/home/record/insurance" is ["record", "insurance"]. */
+const segmentsOf = (pathname: string) => pathname.split("/").filter(Boolean).slice(1);
+
+function sectionOf(pathname: string): Section | null {
+  const [first] = segmentsOf(pathname);
+  if (first === undefined) return "home";
+  if (first === "record" || first === "people" || first === "settings") return first;
+  return null;
 }
 
 const tabs = [
   { section: "home" as const, href: "/home", label: "Home", Icon: HomeIcon },
-  { section: "record" as const, href: "/record", label: "Record", Icon: ListIcon },
-  { section: "people" as const, href: "/people", label: "People", Icon: PeopleIcon },
+  { section: "record" as const, href: "/home/record", label: "Record", Icon: ListIcon },
+  { section: "people" as const, href: "/home/people", label: "People", Icon: PeopleIcon },
 ];
 
 function useInitials() {
@@ -39,7 +42,8 @@ function useInitials() {
 const railLabel =
   "opacity-0 -translate-x-2 [transition:opacity_.2s,translate_.32s_var(--motion-ease)] lg:group-hover/rail:translate-x-0 lg:group-hover/rail:opacity-100 lg:group-hover/rail:[transition-delay:60ms] lg:group-focus-within/rail:translate-x-0 lg:group-focus-within/rail:opacity-100 lg:group-focus-within/rail:[transition-delay:60ms]";
 
-function RailFrame({ section }: { section: Section | null }) {
+function Rail() {
+  const section = sectionOf(usePathname());
   const initials = useInitials();
   return (
     <nav
@@ -69,7 +73,7 @@ function RailFrame({ section }: { section: Section | null }) {
         );
       })}
       <Link
-        href="/settings"
+        href="/home/settings"
         name="rail-settings"
         aria-current={section === "settings" ? "page" : undefined}
         aria-label="Settings"
@@ -88,21 +92,6 @@ function RailFrame({ section }: { section: Section | null }) {
   );
 }
 
-function RailWithParams() {
-  const pathname = usePathname();
-  const from = useSearchParams().get("from");
-  return <RailFrame section={sectionOf(pathname, from)} />;
-}
-
-function Rail() {
-  const pathname = usePathname();
-  return (
-    <Suspense fallback={<RailFrame section={sectionOf(pathname, null)} />}>
-      <RailWithParams />
-    </Suspense>
-  );
-}
-
 /* Phones: the top bar. Home has + and the avatar; Record, People and categories the avatar; an item a back
    chevron and the avatar; settings only a back chevron. */
 
@@ -110,7 +99,7 @@ function Avatar() {
   const initials = useInitials();
   return (
     <Link
-      href="/settings"
+      href="/home/settings"
       name="topbar-settings"
       aria-label="Settings"
       className="-m-[5px] flex size-11 items-center justify-center rounded-full"
@@ -139,13 +128,13 @@ function AddButton() {
 }
 
 function backFor(pathname: string) {
-  const parts = pathname.split("/").filter(Boolean);
-  if (parts[0] === "settings") return parts.length > 1 ? "/settings" : "/home";
-  return `/${parts.slice(0, -1).join("/")}`;
+  const parts = segmentsOf(pathname);
+  if (parts[0] === "settings") return parts.length > 1 ? "/home/settings" : "/home";
+  return ["/home", ...parts.slice(0, -1)].join("/");
 }
 
 function TopBar({ pathname }: { pathname: string }) {
-  const parts = pathname.split("/").filter(Boolean);
+  const parts = segmentsOf(pathname);
   const settings = parts[0] === "settings";
   const item = parts[0] === "record" && parts.length === 3;
   const wordmark = !settings && !item;
@@ -173,7 +162,9 @@ function TopBar({ pathname }: { pathname: string }) {
   );
 }
 
-function TabsFrame({ section }: { section: Section }) {
+function Tabs({ pathname }: { pathname: string }) {
+  const section = sectionOf(pathname);
+  if (section === "settings") return null;
   return (
     <nav
       aria-label="Main"
@@ -197,20 +188,6 @@ function TabsFrame({ section }: { section: Section }) {
         );
       })}
     </nav>
-  );
-}
-
-function TabsWithParams({ pathname }: { pathname: string }) {
-  const from = useSearchParams().get("from");
-  return <TabsFrame section={sectionOf(pathname, from)} />;
-}
-
-function Tabs({ pathname }: { pathname: string }) {
-  if (pathname.startsWith("/settings")) return null;
-  return (
-    <Suspense fallback={<TabsFrame section={sectionOf(pathname, null)} />}>
-      <TabsWithParams pathname={pathname} />
-    </Suspense>
   );
 }
 

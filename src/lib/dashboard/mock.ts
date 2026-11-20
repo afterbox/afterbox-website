@@ -425,7 +425,7 @@ function day2(now: number, accepted: boolean): DashboardState {
         icon: "check",
         title: "Disney+ didn’t charge you",
         sub: "£119.88 a year saved",
-        href: "/record/subscriptions/disney-plus",
+        href: "/home/record/subscriptions/disney-plus",
         upcoming: false,
       },
       {

@@ -134,7 +134,7 @@ function renewEvents(state: DashboardState, now: number): DashEvent[] {
       icon: "resend" as const,
       title: `Renew ${bank.name} in ${days} ${days === 1 ? "day" : "days"}`,
       sub: "So we keep spotting things",
-      href: `/settings/banks/${bank.id}`,
+      href: `/home/settings/banks/${bank.id}`,
       upcoming: false,
     };
   });

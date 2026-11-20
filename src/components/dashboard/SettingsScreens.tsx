@@ -94,7 +94,7 @@ function Settings({ state }: { state: DashboardState }) {
             const left = daysUntil(bank.accessEndsAt);
             return (
               <motion.div key={bank.id} exit={{ opacity: 0, height: 0 }} transition={transition("base")}>
-                <Link href={`/settings/banks/${bank.id}`} name={`settings-bank-${bank.id}`} className={rowClasses}>
+                <Link href={`/home/settings/banks/${bank.id}`} name={`settings-bank-${bank.id}`} className={rowClasses}>
                   <Monogram letters={bank.monogram} size="row" />
                   <span className="block min-w-0 flex-1">
                     <span className="block text-[15px] text-ink">{bank.name}</span>
@@ -120,10 +120,10 @@ function Settings({ state }: { state: DashboardState }) {
 
       <SectionLabel className="mt-10 mb-1">ACCOUNT</SectionLabel>
       <div className="border-t border-line">
-        <ListLink href="/settings/account" name="settings-account" icon={<MailIcon size={18} />}>
+        <ListLink href="/home/settings/account" name="settings-account" icon={<MailIcon size={18} />}>
           {state.account.email}
         </ListLink>
-        <ListLink href="/settings/notifications" name="settings-notifications" icon={<BellIcon size={18} />}>
+        <ListLink href="/home/settings/notifications" name="settings-notifications" icon={<BellIcon size={18} />}>
           Notifications
         </ListLink>
         <ListLink href="/terms" name="settings-terms" icon={<DocumentIcon size={18} />}>
@@ -188,7 +188,7 @@ function Account({ state }: { state: DashboardState }) {
 
   return (
     <Page settings>
-      <BackLink href="/settings" name="account-back" label="Settings" className="max-sm:hidden" />
+      <BackLink href="/home/settings" name="account-back" label="Settings" className="max-sm:hidden" />
       <PageTitle className="mb-8 sm:mb-10">Account</PageTitle>
       <form onSubmit={onSubmit} noValidate>
         <fieldset disabled={saving} className="min-w-0 space-y-5">
@@ -308,7 +308,7 @@ function Notifications({ state }: { state: DashboardState }) {
 
   return (
     <Page settings>
-      <BackLink href="/settings" name="notifications-back" label="Settings" className="max-sm:hidden" />
+      <BackLink href="/home/settings" name="notifications-back" label="Settings" className="max-sm:hidden" />
       <PageTitle className="mb-2">Notifications</PageTitle>
       <p className="mb-7 text-sm/normal text-ink-soft sm:text-[15px]/normal">By email to {state.account.email}</p>
       <div className="border-t border-line">
@@ -357,13 +357,13 @@ function Bank({ id, state }: { id: string; state: DashboardState }) {
 
   useEffect(() => {
     router.prefetch("/connect/opening");
-    router.prefetch("/settings");
+    router.prefetch("/home/settings");
   }, [router]);
 
   useEffect(() => {
     if (!justRenewed) return;
     applyRenewal(id);
-    router.replace(`/settings/banks/${id}`, { scroll: false });
+    router.replace(`/home/settings/banks/${id}`, { scroll: false });
   }, [justRenewed, id, router]);
 
   // Disconnected: Settings is already on its way.
@@ -379,7 +379,7 @@ function Bank({ id, state }: { id: string; state: DashboardState }) {
 
   return (
     <Page settings>
-      <BackLink href="/settings" name="bank-back" label="Settings" className="max-sm:hidden" />
+      <BackLink href="/home/settings" name="bank-back" label="Settings" className="max-sm:hidden" />
       <div className="mb-7 flex items-center gap-4">
         <Monogram letters={bank.monogram} size="lg" />
         <div className="min-w-0">
@@ -438,7 +438,8 @@ function Bank({ id, state }: { id: string; state: DashboardState }) {
 }
 
 function BankFromParams({ state }: { state: DashboardState }) {
-  const { bankId } = useParams<{ bankId: string }>();
+  // Kept from the first render: while this page fades out, the params already belong to the next one.
+  const [bankId] = useState(useParams<{ bankId: string }>().bankId);
   return <Bank id={bankId} state={state} />;
 }
 

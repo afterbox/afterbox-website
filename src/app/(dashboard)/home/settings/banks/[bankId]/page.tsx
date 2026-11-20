@@ -11,7 +11,7 @@ export function generateStaticParams() {
   return getBanks().map((bank) => ({ bankId: bank.id }));
 }
 
-export default async function BankPage({ params }: PageProps<"/settings/banks/[bankId]">) {
+export default async function BankPage({ params }: PageProps<"/home/settings/banks/[bankId]">) {
   if (!getBank((await params).bankId)) notFound();
   return <BankScreen />;
 }
