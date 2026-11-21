@@ -372,3 +372,69 @@ export function TrashIcon(props: IconProps) {
     </Icon>
   );
 }
+
+export function FingerprintIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 11v3a7 7 0 0 1-1.5 4.3" />
+      <path d="M8.5 10a3.5 3.5 0 0 1 7 0v2c0 2.6-.7 5-2 7" />
+      <path d="M5.5 15c.3-1 .5-2 .5-3V10a6 6 0 0 1 10-4.5" />
+      <path d="M18 9.5c.3.8.5 1.6.5 2.5v1" />
+    </Icon>
+  );
+}
+
+export function KeyIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="8" cy="15" r="4" />
+      <path d="M11 12l8-8M16 7l2 2" />
+    </Icon>
+  );
+}
+
+export function CopyIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="8" y="8" width="12" height="12" rx="2" />
+      <path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" />
+    </Icon>
+  );
+}
+
+export function DownloadIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 4v11M7 10l5 5 5-5" />
+      <path d="M4 20h16" />
+    </Icon>
+  );
+}
+
+export function LaptopIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="4" y="5" width="16" height="11" rx="1.5" />
+      <path d="M2.5 19h19" />
+    </Icon>
+  );
+}
+
+export function PhoneIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+      <path d="M11 18.5h2" />
+    </Icon>
+  );
+}
+
+export function HelpIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5v.4" />
+      <path d="M12 17h.01" />
+    </Icon>
+  );
+}

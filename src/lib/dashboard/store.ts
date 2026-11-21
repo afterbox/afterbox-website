@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { onboardingActions, readOnboarding } from "@/lib/onboarding/store";
+import { addDemoDevices, bootSecurity, freshMock } from "@/lib/security/recovery";
 import { createSessionStore } from "@/lib/sessionStore";
 import {
   dashboardScenarios,
@@ -61,8 +62,17 @@ export function boot(params: URLSearchParams) {
   const tokens = (params.get("mock") ?? "").split(",").map((token) => token.trim());
   if (params.has("mock")) used.push("mock");
 
-  const scenario = tokens.find((token): token is Scenario => dashboardScenarios.includes(token as Scenario));
-  if (params.has("mock")) mockFlags.set(() => ({ slow: tokens.includes("slow"), fail: tokens.includes("fail") }));
+  // A new device belongs to an existing member: day 2, unless a scenario says otherwise.
+  const fresh = freshMock(params);
+  const scenario = fresh
+    ? (tokens.find((token): token is Scenario => dashboardScenarios.includes(token as Scenario)) ??
+      (tokens.includes("newdevice") ? "day2" : undefined))
+    : undefined;
+  if (fresh) {
+    mockFlags.set(() => ({ slow: tokens.includes("slow"), fail: tokens.includes("fail") }));
+    bootSecurity(params);
+  }
+  if (scenario === "day2" || scenario === "accepted") addDemoDevices();
 
   if (scenario) seedFrom(scenario);
   else if (params.get("start") === "manual") {
@@ -98,7 +108,7 @@ export function useDashboardState() {
   return dashboardStore.useValue();
 }
 
-/** Logging out ends the mock session. */
+/** Logging out ends the mock session. The member part stays in this browser; the next sign-in asks for the passkey. */
 export function clearSession() {
   dashboardStore.set(() => null);
   mockFlags.set(() => ({ slow: false, fail: false }));

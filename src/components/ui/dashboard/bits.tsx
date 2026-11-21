@@ -199,11 +199,19 @@ const celebrationTones = {
 } as const;
 
 /** The icon at the top of a celebration: a circle that springs in from 0.6 over a glow that fades in. */
-export function Celebration({ tone = "positive", children }: { tone?: keyof typeof celebrationTones; children: ReactNode }) {
+export function Celebration({
+  tone = "positive",
+  className = "mb-6",
+  children,
+}: {
+  tone?: keyof typeof celebrationTones;
+  className?: string;
+  children: ReactNode;
+}) {
   const { grow, reduced } = useMotionTokens();
   const colours = celebrationTones[tone];
   return (
-    <div aria-hidden="true" className="relative mx-auto mb-6 flex h-24 w-[120px] items-center justify-center">
+    <div aria-hidden="true" className={`relative mx-auto flex h-24 w-[120px] items-center justify-center ${className}`}>
       <motion.span
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

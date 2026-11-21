@@ -2,9 +2,10 @@
 
 import { Link } from "@/components/ui/Links";
 import { usePathname, useSearchParams } from "next/navigation";
-import { createContext, Suspense, useCallback, useContext, useState, type ReactNode } from "react";
+import { createContext, Suspense, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import BackButton from "@/components/ui/BackButton";
 import { authHref, DEMO_EMAIL, readMode } from "@/lib/mock-auth";
+import { lockSession } from "@/lib/security/store";
 
 const AuthShellContext = createContext<{ setLeaving: (leaving: boolean) => void }>({ setLeaving: () => { } });
 
@@ -28,6 +29,9 @@ export default function AuthShell({ children }: { children: ReactNode }) {
   const setLeaving = useCallback((value: boolean) => setPinnedTop(value ? -window.scrollY : null), []);
   const fade = `transition-opacity duration-200 ${leaving ? "pointer-events-none opacity-0" : ""}`;
   const isVerify = usePathname() === "/verify";
+
+  // Signed out: the record locks again, but this device keeps its part, so signing back in is one Unlock.
+  useEffect(() => lockSession(), []);
 
   return (
     <AuthShellContext value={{ setLeaving }}>

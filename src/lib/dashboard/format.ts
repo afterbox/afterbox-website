@@ -38,8 +38,8 @@ export function todayIso() {
   return toIso(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
-const MINUTE = 60_000;
-const HOUR = 60 * MINUTE;
+export const MINUTE = 60_000;
+export const HOUR = 60 * MINUTE;
 export const DAY = 24 * HOUR;
 
 /** "just now", "5 minutes ago", "2 hours ago", "3 days ago". */

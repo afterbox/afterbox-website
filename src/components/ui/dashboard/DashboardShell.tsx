@@ -9,8 +9,12 @@ import BrandMark from "@/components/ui/BrandMark";
 import { HomeIcon, ListIcon, PeopleIcon, PlusIcon } from "@/components/ui/icons";
 import { Link } from "@/components/ui/Links";
 import { acceptDue, loadDelay } from "@/lib/dashboard/api";
-import { boot, markLoaded, useDashboardState, useLoaded } from "@/lib/dashboard/store";
+import { boot, dashboardStore, markLoaded, useDashboardState, useLoaded } from "@/lib/dashboard/store";
 import { cssMotionVars, distance, pressable, transition } from "@/lib/motion";
+import { touchThisDevice } from "@/lib/security/device";
+import { syncTrustedPerson } from "@/lib/security/recovery";
+import { accessHref, setUnlock, unlockStore } from "@/lib/security/store";
+import { useSeededAccess } from "@/lib/security/useSeededAccess";
 import { useMotionTokens } from "@/lib/useMotionTokens";
 import { pageCover, useLayerHistory, useLayers } from "./Layer";
 import { Toaster } from "./toast";
@@ -300,24 +304,55 @@ function Boot() {
 }
 
 /**
+ * Before any /home page: no passkey yet goes to /secure, and a browser without the member part (or a
+ * session that hasn't unlocked) to /unlock. Nothing of the dashboard shows on the way.
+ */
+function useGate() {
+  const access = useSeededAccess(boot);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (access === "pending") return;
+    if (access !== "open") {
+      router.replace(accessHref[access]);
+      return;
+    }
+    if (unlockStore.get().status === "in") setUnlock("open");
+    touchThisDevice();
+  }, [access, router]);
+
+  useEffect(() => {
+    syncTrustedPerson();
+    return dashboardStore.subscribe(syncTrustedPerson);
+  }, []);
+
+  return access === "open";
+}
+
+/**
  * Desktop and tablet: the rail on the left and the window scrolls. Phones: a viewport-high frame with the
  * top bar, a scrolling main and the tabs, so sheets can scale it back like iOS.
  */
 export default function DashboardShell({ overlays, children }: { overlays: ReactNode; children: ReactNode }) {
   const pathname = usePathname();
+  const allowed = useGate();
   return (
     <MotionConfig reducedMotion="user" transition={transition("base")}>
       <div style={cssMotionVars} className="leading-[normal]">
-        <div aria-hidden="true" className="fixed inset-0 bg-night sm:hidden" />
         <Suspense>
           <Boot />
         </Suspense>
-        <Rail />
-        <PageFrame pathname={pathname}>
-          <Stage pathname={pathname}>{children}</Stage>
-        </PageFrame>
-        <Suspense>{overlays}</Suspense>
-        <Toaster />
+        {allowed && (
+          <>
+            <div aria-hidden="true" className="fixed inset-0 bg-night sm:hidden" />
+            <Rail />
+            <PageFrame pathname={pathname}>
+              <Stage pathname={pathname}>{children}</Stage>
+            </PageFrame>
+            <Suspense>{overlays}</Suspense>
+            <Toaster />
+          </>
+        )}
       </div>
     </MotionConfig>
   );

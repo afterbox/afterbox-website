@@ -253,6 +253,9 @@ const accountSeed: Account = {
   mobile: "+44 7700 900 123",
 };
 
+/** The demo account, for screens that show it before the dashboard has seeded (or after logging out). */
+export const mockAccount = () => accountSeed;
+
 const prefsSeed: Prefs = { updates: true, summary: false };
 
 const nextPayments: Record<string, string> = { "admiral-home": "2026-12-02", "direct-line-home": "2026-12-09" };

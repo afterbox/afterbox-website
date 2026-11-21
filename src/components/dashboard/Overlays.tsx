@@ -3,12 +3,19 @@
 import { AnimatePresence, motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  ApproveDeviceOverlay,
+  BackupCodeOverlay,
+  HelpRequestOverlay,
+  RemoveDeviceOverlay,
+} from "@/components/security/SecurityOverlays";
 import Button from "@/components/ui/Button";
 import {
   BanIcon,
   CameraIcon,
   CheckIcon,
   ChevronRightIcon,
+  KeyIcon,
   MailIcon,
   PencilIcon,
   PeopleIcon,
@@ -835,7 +842,17 @@ function InviteOverlay({ state }: { state: DashboardState }) {
                 options={relations.map((option) => ({ value: option, label: option }))}
               />
             </fieldset>
-            <div className="h-6" />
+            <div className={`transition-[height] duration-[var(--motion-base)] ease-[var(--motion-ease)] ${name.trim() ? "h-5" : "h-6"}`} />
+            <Collapse show={Boolean(name.trim())}>
+              <div className="pb-5">
+                <div className="flex items-center gap-3 rounded-panel border border-line bg-ground px-4 py-3.5">
+                  <KeyIcon size={18} className="flex-none text-ink-deep" />
+                  <p className="flex-1 text-[13px]/[1.45] text-ink">
+                    {firstName(name.trim())} can also help you get back in if you ever lose your devices.
+                  </p>
+                </div>
+              </div>
+            </Collapse>
             <Button
               type="submit"
               variant="inkDeep"
@@ -993,6 +1010,10 @@ const overlays: Record<string, (props: { state: DashboardState }) => ReactNode> 
   replace: ReplaceOverlay,
   accepted: AcceptedOverlay,
   disconnect: DisconnectOverlay,
+  "approve-device": ApproveDeviceOverlay,
+  "help-request": HelpRequestOverlay,
+  "remove-device": RemoveDeviceOverlay,
+  "backup-code": BackupCodeOverlay,
 };
 
 export default function Overlays() {

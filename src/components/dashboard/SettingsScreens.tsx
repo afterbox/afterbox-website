@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useAccessLine } from "@/components/dashboard/SecuritySettings";
 import Button from "@/components/ui/Button";
 import {
   BellIcon,
@@ -51,11 +52,14 @@ const days = (count: number) => `${count} ${count === 1 ? "day" : "days"}`;
 
 const rowClasses = `group flex w-full cursor-pointer items-center gap-3.5 border-b border-line py-4 text-left ${pressable}`;
 
-function ListLink({ href, name, icon, children }: { href: string; name: string; icon: ReactNode; children: ReactNode }) {
+function ListLink({ href, name, icon, sub, children }: { href: string; name: string; icon: ReactNode; sub?: string | null; children: ReactNode }) {
   return (
     <Link href={href} name={name} className={rowClasses}>
       <span className="flex-none text-ink-soft">{icon}</span>
-      <span className="min-w-0 flex-1 truncate text-[15px] text-ink">{children}</span>
+      <span className="block min-w-0 flex-1">
+        <span className="block truncate text-[15px] text-ink">{children}</span>
+        {sub && <span className="mt-0.5 block truncate text-[13px] text-ink-soft">{sub}</span>}
+      </span>
       <ChevronRightIcon size={16} className="flex-none text-ink-soft/70 transition-transform duration-[var(--motion-fast)] group-hover:translate-x-0.5" />
     </Link>
   );
@@ -65,6 +69,7 @@ function Settings({ state }: { state: DashboardState }) {
   const router = useRouter();
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const accessLine = useAccessLine(state);
 
   useEffect(() => {
     router.prefetch("/login");
@@ -120,6 +125,9 @@ function Settings({ state }: { state: DashboardState }) {
 
       <SectionLabel className="mt-10 mb-1">ACCOUNT</SectionLabel>
       <div className="border-t border-line">
+        <ListLink href="/home/settings/security" name="settings-security" icon={<ShieldCheckIcon size={18} />} sub={accessLine}>
+          Devices and access
+        </ListLink>
         <ListLink href="/home/settings/account" name="settings-account" icon={<MailIcon size={18} />}>
           {state.account.email}
         </ListLink>
