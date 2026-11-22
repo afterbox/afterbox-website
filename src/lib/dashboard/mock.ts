@@ -97,6 +97,9 @@ export type DashEvent = {
 
 export type Prefs = { updates: boolean; summary: boolean };
 
+/** Settings → Privacy. `categorise`: merchant names may be sent, cleaned, to the AI provider for categories. */
+export type PrivacyPrefs = { categorise: boolean };
+
 export type Account = {
   name: string;
   initials: string;
@@ -115,6 +118,7 @@ export type DashboardState = {
   banks: ConnectedBank[];
   events: DashEvent[];
   prefs: Prefs;
+  privacy: PrivacyPrefs;
   account: Account;
   /** The new-finds modal has opened this session. */
   findsPrompted: boolean;
@@ -258,6 +262,8 @@ export const mockAccount = () => accountSeed;
 
 const prefsSeed: Prefs = { updates: true, summary: false };
 
+const privacySeed: PrivacyPrefs = { categorise: true };
+
 const nextPayments: Record<string, string> = { "admiral-home": "2026-12-02", "direct-line-home": "2026-12-09" };
 
 const filledDetails = (finding: { category: CategoryId; provider: string | null; name: string }) => {
@@ -320,6 +326,7 @@ function base(): DashboardState {
     banks: [],
     events: [],
     prefs: prefsSeed,
+    privacy: privacySeed,
     account: accountSeed,
     findsPrompted: false,
   };

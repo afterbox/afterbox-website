@@ -2,13 +2,13 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useSyncExternalStore } from "react";
-import { CheckIcon } from "@/components/ui/icons";
+import { AlertIcon, CheckIcon } from "@/components/ui/icons";
 import { Link } from "@/components/ui/Links";
 import { distance, transition } from "@/lib/motion";
 import { useMotionTokens } from "@/lib/useMotionTokens";
 
 type ToastAction = { label: string; href: string };
-type Toast = { id: number; message: string; action?: ToastAction } | null;
+type Toast = { id: number; message: string; action?: ToastAction; error?: boolean } | null;
 
 let current: Toast = null;
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -24,6 +24,13 @@ export function showToast(message: string, action?: ToastAction) {
   clearTimeout(timer);
   set({ id: Date.now(), message, action });
   timer = setTimeout(() => set(null), action ? 5000 : 3000);
+}
+
+/** The same note with an alert icon, for a change that didn't save (and has been put back). */
+export function showErrorToast(message: string) {
+  clearTimeout(timer);
+  set({ id: Date.now(), message, error: true });
+  timer = setTimeout(() => set(null), 3000);
 }
 
 function useToast() {
@@ -60,7 +67,7 @@ export function Toaster({ placement = "tabs" }: { placement?: keyof typeof place
             transition={transition("base")}
             className="flex w-full items-center gap-2.5 rounded-panel bg-ink px-4 py-3.5 text-sm/[normal] text-on-night sm:w-auto sm:min-w-[320px]"
           >
-            <CheckIcon size={16} />
+            {toast.error ? <AlertIcon size={16} /> : <CheckIcon size={16} />}
             <span className="flex-1">{toast.message}</span>
             {toast.action && (
               <Link

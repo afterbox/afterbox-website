@@ -30,7 +30,8 @@ import Page from "@/components/ui/dashboard/Page";
 import Ready from "@/components/ui/dashboard/Ready";
 import { DetailRow } from "@/components/ui/dashboard/rows";
 import { BankSkeleton, FormSkeleton, SettingsSkeleton } from "@/components/ui/dashboard/Skeleton";
-import { applyRenewal, getBankView, logOut, saveAccount, setPref, startRenewal } from "@/lib/dashboard/api";
+import { showErrorToast } from "@/components/ui/dashboard/toast";
+import { applyRenewal, getBankView, logOut, saveAccount, setCategorise, setPref, startRenewal } from "@/lib/dashboard/api";
 import {
   daysUntil,
   formatMobile,
@@ -137,7 +138,7 @@ function Settings({ state }: { state: DashboardState }) {
         <ListLink href="/terms" name="settings-terms" icon={<DocumentIcon size={18} />}>
           Terms
         </ListLink>
-        <ListLink href="/privacy" name="settings-privacy" icon={<ShieldCheckIcon size={18} />}>
+        <ListLink href="/home/settings/privacy" name="settings-privacy" icon={<ShieldCheckIcon size={18} />}>
           Privacy
         </ListLink>
         <button type="button" onClick={onLogOut} disabled={leaving} className={`${rowClasses} border-b-0 text-alert`}>
@@ -350,6 +351,49 @@ function FormMessage({ note }: { note: { error: string | null; saved: boolean } 
 
 export function NotificationsScreen() {
   return <Ready skeleton={<SettingsSkeleton title="Notifications" />}>{(state) => <Notifications state={state} />}</Ready>;
+}
+
+/* Privacy */
+
+function Privacy({ state }: { state: DashboardState }) {
+  async function toggle(value: boolean) {
+    try {
+      await setCategorise(value);
+    } catch (caught) {
+      showErrorToast(message(caught));
+    }
+  }
+
+  return (
+    <Page settings>
+      <BackLink href="/home/settings" name="privacy-back" label="Settings" className="max-sm:hidden" />
+      <PageTitle className="mb-7">Privacy</PageTitle>
+      <div className="border-t border-line">
+        <div className="flex items-center gap-3.5 border-b border-line py-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] text-ink">Help categorise my payments</p>
+            <p id="privacy-categorise-sub" className="mt-0.5 text-[13px] text-ink-soft">
+              Lets afterbox send cleaned-up merchant names (never amounts or personal details) to our AI provider to sort your
+              payments into categories.
+            </p>
+          </div>
+          <Toggle
+            checked={state.privacy.categorise}
+            label="Help categorise my payments"
+            describedBy="privacy-categorise-sub"
+            onChange={toggle}
+          />
+        </div>
+        <ListLink href="/privacy" name="settings-privacy-policy" icon={<DocumentIcon size={18} />}>
+          Privacy policy
+        </ListLink>
+      </div>
+    </Page>
+  );
+}
+
+export function PrivacyScreen() {
+  return <Ready skeleton={<SettingsSkeleton title="Privacy" />}>{(state) => <Privacy state={state} />}</Ready>;
 }
 
 /* 25 and 28: a connected bank */

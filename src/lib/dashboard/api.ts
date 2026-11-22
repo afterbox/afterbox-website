@@ -414,6 +414,18 @@ export function setPref(key: "updates" | "summary", value: boolean) {
   });
 }
 
+/**
+ * Optimistic, like setPref. "Help categorise my payments" in Settings → Privacy.
+ * No backend route exists for this yet (not in docs/INTEGRATION.md or API.md); wire it once the backend adds one.
+ */
+export function setCategorise(value: boolean) {
+  update((state) => ({ ...state, privacy: { ...state.privacy, categorise: value } }));
+  return mockApi(() => undefined).catch((error: unknown) => {
+    update((state) => ({ ...state, privacy: { ...state.privacy, categorise: !value } }));
+    throw error;
+  });
+}
+
 /** Stops reading the bank. What it found stays. */
 export function disconnectBank(bankId: string) {
   return mockApi(() => {

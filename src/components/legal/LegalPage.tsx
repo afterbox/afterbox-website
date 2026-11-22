@@ -1,4 +1,4 @@
-import { legalEmail, legalUpdated, type LegalDocument } from "@/content/legal";
+import { legalEmail, type LegalDocument } from "@/content/legal";
 
 function Body({ text }: { text: string }) {
   const [before, after] = text.split(legalEmail);
@@ -20,7 +20,7 @@ export default function LegalPage({ document }: { document: LegalDocument }) {
       <h1 className="mb-2.5 text-[32px]/[1.08] font-normal tracking-[-0.04em] text-ink sm:text-5xl/[1.08]">
         {document.title}
       </h1>
-      <p className="mb-10 text-sm text-ink-soft/70 sm:mb-12">Last updated {legalUpdated}</p>
+      <p className="mb-10 text-sm text-ink-soft/70 sm:mb-12">Last updated {document.updated}</p>
       {document.sections.map((section) => (
         <section
           key={section.heading}
@@ -29,9 +29,11 @@ export default function LegalPage({ document }: { document: LegalDocument }) {
           <h2 className="mb-2 text-[17px]/[1.3] font-medium tracking-[-0.015em] text-ink sm:text-[19px]/[1.3]">
             {section.heading}
           </h2>
-          <p className="text-[15px]/[1.6] text-ink-soft sm:text-base/[1.6]">
-            <Body text={section.body} />
-          </p>
+          {section.body.split("\n\n").map((paragraph) => (
+            <p key={paragraph} className="text-[15px]/[1.6] text-ink-soft not-first-of-type:mt-3 sm:text-base/[1.6]">
+              <Body text={paragraph} />
+            </p>
+          ))}
         </section>
       ))}
     </article>
