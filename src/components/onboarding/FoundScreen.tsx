@@ -160,7 +160,7 @@ export default function FoundScreen() {
       )}
 
       <motion.div {...reveal.rise(restFrom + (few ? stagger.base : 0))}>
-        <Button href="/home" name="found-add-all" variant="inkDeep" size="block">
+        <Button href="/secure" name="found-add-all" variant="inkDeep" size="block">
           Add all to my record
         </Button>
       </motion.div>

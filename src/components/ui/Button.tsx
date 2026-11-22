@@ -76,6 +76,15 @@ export default function Button({
 }: ButtonProps) {
   const classes = `relative inline-flex cursor-pointer items-center justify-center gap-2.5 whitespace-nowrap rounded-full font-semibold ${pressable} disabled:pointer-events-none disabled:cursor-default ${variants[variant]} ${disabledStyles[variant]} ${sizes[size]} ${className}`;
 
+  // Email and other apps open outside the router, so there's nothing to prefetch.
+  if (href?.startsWith("mailto:")) {
+    return (
+      <a href={href} className={classes}>
+        {children}
+      </a>
+    );
+  }
+
   if (href) {
     return (
       <Link href={href} name={name} className={classes}>

@@ -1,12 +1,13 @@
 export const legalEmail = "hello@afterbox.co.uk";
-export const legalUpdated = "17 November 2026";
 
 export type LegalSection = { heading: string; body: string };
-export type LegalDocument = { title: string; description: string; sections: LegalSection[] };
+/** `body` can hold several paragraphs, separated by a blank line. */
+export type LegalDocument = { title: string; description: string; updated: string; sections: LegalSection[] };
 
 export const terms: LegalDocument = {
   title: "Terms of Service",
   description: "The terms that cover your use of afterbox.",
+  updated: "17 November 2026",
   sections: [
     {
       heading: "About these terms",
@@ -51,6 +52,7 @@ export const terms: LegalDocument = {
 export const privacy: LegalDocument = {
   title: "Privacy Policy",
   description: "What personal data afterbox collects, how we use it and the rights you have.",
+  updated: "22 November 2026",
   sections: [
     {
       heading: "Who we are",
@@ -66,7 +68,20 @@ export const privacy: LegalDocument = {
     },
     {
       heading: "Who we share it with",
-      body: "The people you choose to share with. Our open banking provider, to connect your bank. Others only when the law requires it.",
+      body: [
+        "The people you choose to share with. Others only when the law requires it. We also use these companies to run afterbox:",
+        "Anthropic, our AI model provider. When you scan a document, the document is sent to Anthropic so we can read its details, such as a policy number or renewal date. Separately, to organise your regular payments into categories, we send Anthropic merchant names only, such as 'Disney Plus' or 'PureGym'. We clean these names first: no amounts, dates, account details or anything that identifies you, and we only send a name once several afterbox members pay the same merchant. Anthropic doesn't use this data to train its models.",
+        "PostHog, for product analytics, hosted in the EU. We use PostHog to understand how afterbox is used and improve it. PostHog receives your account ID, your email address, and events such as 'connected a bank' or 'added an item', with counts only. It never receives the contents of your record.",
+        "Tink, our open banking provider, to connect your bank. Stripe, to take payments. Resend, to send emails. Ably, for live updates in the app. Supabase, for our database and file storage. Railway, to run our servers. Google Cloud, to manage encryption keys.",
+      ].join("\n\n"),
+    },
+    {
+      heading: "Merchant categories",
+      body: "You can stop your merchant names from being used for categorising in Settings → Privacy. Turning this off doesn't remove categories you already have.",
+    },
+    {
+      heading: "Payment reminders",
+      body: "If you're on a paid plan and have reminders on, we prepare emails for upcoming yearly and quarterly payments up to a year ahead. To send them while your record is locked, we keep the payment's name and date encrypted with a key afterbox controls, and delete each one once it's sent. We never store the amount for this.",
     },
     {
       heading: "Where it's stored",
@@ -74,7 +89,7 @@ export const privacy: LegalDocument = {
     },
     {
       heading: "How long we keep it",
-      body: "While your account is open. When you close it, we delete your data within 30 days.",
+      body: "While your account is open. When you delete your account, it's closed immediately and permanently deleted within 30 days. Copies in our encrypted backups are removed within a further 7 days. We keep a minimal security log without your email for up to 24 months, and anonymous analytics events linked only to a random ID.",
     },
     {
       heading: "Your rights",

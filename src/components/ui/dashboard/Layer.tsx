@@ -94,16 +94,20 @@ export function useLayers() {
     else router.replace(href(Object.fromEntries(OVERLAY_PARAMS.map((key) => [key, null]))), { scroll: false });
   }, [href, router]);
 
-  /** Closes everything, then replaces the page underneath (e.g. back to Settings after Disconnect). */
+  /**
+   * Closes everything, then replaces the page underneath (e.g. back to Settings after Disconnect),
+   * or with `push`, goes on from it so Back returns there (e.g. from Other ways to unlock).
+   */
   const closeTo = useCallback(
-    (target: string) => {
+    (target: string, { push = false } = {}) => {
       const steps = depth;
       depth = 0;
+      const go = () => (push ? router.push(target, { scroll: false }) : router.replace(target, { scroll: false }));
       if (steps === 0) {
-        router.replace(target, { scroll: false });
+        go();
         return;
       }
-      window.addEventListener("popstate", () => router.replace(target, { scroll: false }), { once: true });
+      window.addEventListener("popstate", go, { once: true });
       window.history.go(-steps);
     },
     [router],
