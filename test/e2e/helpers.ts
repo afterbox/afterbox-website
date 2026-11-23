@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { expect, type BrowserContext, type CDPSession, type Page } from "@playwright/test";
 
@@ -6,6 +7,11 @@ export const API = "http://localhost:8000";
 /** A fresh address per test that Resend accepts and drops: delivered+e2e-<run>-<tag>@resend.dev. */
 const RUN = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 export const newEmail = (tag: string) => `delivered+e2e-${RUN}-${tag}@resend.dev`;
+
+/** Puts a test account on a plan through the backend's development-only script (it builds first: ~30 s). */
+export function setPlan(email: string, plan: "free" | "standard" | "family") {
+  execFileSync("npm", ["--prefix", "../afterbox-backend", "run", "dev:plan", "--", email, plan], { stdio: "pipe", timeout: 120_000 });
+}
 
 type DevEmail = { to: string; subject: string; text: string; links: string[]; codes: string[]; sentAt: string };
 

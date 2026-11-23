@@ -1,31 +1,24 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
-import { addVirtualAuthenticator, apiFromPage, connectDemoBank, enterCode, requestCode, signUpWithPasskey, waitForEmail, watchConsole } from "./helpers";
+import { addVirtualAuthenticator, apiFromPage, connectDemoBank, enterCode, requestCode, setPlan, signUpWithPasskey, waitForEmail, watchConsole } from "./helpers";
+
+const ISSUE_PLAN_CACHE = "docs/BACKEND_ISSUES.md#9";
 
 /**
  * One member's journey on one page, in order: the device blob lives in this page's IndexedDB under a
  * non-extractable key, which no storage-state file can carry between tests.
- *
- * GET /v1/home is answered in the browser with an abort in every test but the one about Home: on this backend it
- * hangs after locking a record with items and each hung request holds a database connection until the API is
- * restarted (docs/BACKEND_ISSUES.md #4). Every flow here is asserted through the screens that work.
  */
 test.describe.configure({ mode: "serial" });
 
-const ISSUE_HOME = "docs/BACKEND_ISSUES.md#4";
-const ISSUE_STORAGE = "docs/BACKEND_ISSUES.md#6";
 
 let context: BrowserContext;
 let page: Page;
 let consoleWatch: ReturnType<typeof watchConsole>;
 let member: Awaited<ReturnType<typeof signUpWithPasskey>>;
 
-const blockHome = (target: Page) => target.route("http://localhost:8000/v1/home", (route) => route.abort());
-
 test.beforeAll(async ({ browser }) => {
   context = await browser.newContext({ baseURL: "http://localhost:3000", permissions: ["clipboard-read", "clipboard-write"] });
   page = await context.newPage();
   consoleWatch = watchConsole(page);
-  await blockHome(page);
 });
 
 test.afterAll(async () => {
@@ -38,6 +31,8 @@ test.afterEach(() => {
 
 test("sign up → passkey → connect a bank via Tink → reading progress → found → add all → lock record → the record holds the finds", async () => {
   member = await signUpWithPasskey(page, "journey");
+  // On Standard: the free plan's 10 items are used up by the finds and the typed-in item before the scan.
+  setPlan(member.email, "standard");
 
   await page.getByRole("link", { name: "Find mine" }).click();
   await page.getByRole("link", { name: "Choose your bank" }).click();
@@ -87,15 +82,13 @@ test("sign up → passkey → connect a bank via Tink → reading progress → f
 });
 
 test("home shows the finds", async () => {
-  test.fixme(true, `GET /v1/home fails then hangs after locking a record with items: ${ISSUE_HOME}`);
-  await page.unroute("http://localhost:8000/v1/home");
   // Compared with the record (not /v1/home itself: a second Home request from the test would overlap the screen's).
   const record = (await apiFromPage<{ all: number; sections: { category: { id: string } }[] }>(page, "/v1/record")).body;
   await page.goto("/home");
   await expect(page.getByTestId("home-count")).toContainText(String(record.all), { timeout: 45_000 });
   for (const section of record.sections) await expect(page.locator(`a[href="/home/record/${section.category.id}?from=home"]`)).toBeVisible();
-  await expect(page.getByText(/Checked with Tink Demo Bank|Saved and encrypted/).first()).toBeVisible();
-  await blockHome(page);
+  // The line is rendered twice (one per layout); the one on screen.
+  await expect(page.getByText(/Checked with Tink Demo Bank|Saved and encrypted/).filter({ visible: true }).first()).toBeVisible();
 });
 
 test("add and edit an item", async () => {
@@ -136,7 +129,7 @@ test("add and edit an item", async () => {
 });
 
 test("scan a document and confirm it", async ({ browser }) => {
-  test.fixme(true, `the local API can't store document files (503 from DocumentFiles.put): ${ISSUE_STORAGE}`);
+  test.fixme(true, `confirm answers 402 (the free plan's 10 items): dev:plan doesn't clear the API's cached entitlements: ${ISSUE_PLAN_CACHE}`);
   // A readable insurance schedule, rendered to a PNG.
   const scratch = await browser.newPage();
   await scratch.setViewportSize({ width: 900, height: 1100 });
@@ -210,9 +203,8 @@ test("set a backup code", async () => {
 });
 
 test("approve a new device from an unlocked one", async ({ browser }) => {
-  const second = await browser.newContext({ baseURL: "http://localhost:3000" });
+  const second = await browser.newContext({ baseURL: "http://localhost:3000", permissions: ["clipboard-read", "clipboard-write"] });
   const phone = await second.newPage();
-  await blockHome(phone);
   await addVirtualAuthenticator(phone);
 
   // The new device signs in, has no blob, and asks to be approved.
@@ -238,8 +230,34 @@ test("approve a new device from an unlocked one", async ({ browser }) => {
 
   // The new device collects its sealed blob, opens it, and is in.
   await expect(phone.getByRole("heading", { name: "You’re in" })).toBeVisible({ timeout: 45_000 });
-  await phone.getByRole("button", { name: "Go to my record" }).click();
-  await expect(phone).toHaveURL(/\/home/);
+
+  // A device let in by approval can make a new backup code (the member part comes from the server, sealed to it).
+  const before = (await apiFromPage<{ lockedPart: string }>(page, "/v1/recovery/envelope")).body.lockedPart;
+  await phone.getByRole("button", { name: "Make a new backup code" }).click();
+  await expect(phone).toHaveURL(/\/home\/settings\/security\?sheet=backup-code/);
+  const code = (await phone.getByTestId("backup-code").textContent())!.trim();
+  expect(code).toMatch(/^([0-9A-HJKMNP-TV-Z]{4}-){5}[0-9A-HJKMNP-TV-Z]{4}$/);
+  await phone.getByRole("button", { name: "Copy" }).click(); // Done stores the code only once it's kept somewhere
+  await expect(phone.getByText("Copied")).toBeVisible();
+  await phone.getByRole("button", { name: "Done" }).click();
+  await expect(phone.getByText("Saved")).toBeVisible({ timeout: 30_000 });
+  expect((await apiFromPage<{ lockedPart: string }>(phone, "/v1/recovery/envelope")).body.lockedPart).not.toBe(before);
+  // Nothing of the member part is kept in this browser.
+  const stored = await phone.evaluate(
+    () =>
+      new Promise<string[]>((resolve) => {
+        const open = indexedDB.open("afterbox", 1);
+        open.onsuccess = () => {
+          const request = open.result.transaction("secrets").objectStore("secrets").getAllKeys();
+          request.onsuccess = () => {
+            resolve(request.result.map(String));
+            open.result.close();
+          };
+        };
+      }),
+  );
+  expect(stored.filter((name) => name.startsWith("member-part:"))).toEqual([]);
+
   await phone.goto("/home/record");
   await expect(phone.getByRole("heading", { name: "Record" })).toBeVisible();
   const devices = (await apiFromPage<{ devices: unknown[] }>(page, "/v1/security/overview")).body.devices;

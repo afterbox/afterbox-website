@@ -6,11 +6,9 @@ type Find = { id: string; name: string; provider: string | null; category: strin
 /**
  * Review, one find at a time: change its category, add it, leave one out (with the reason the API requires).
  * The member locks first and then connects a bank, so the finds arrive for review rather than staged.
- * GET /v1/home is aborted in the browser (docs/BACKEND_ISSUES.md #4); the finds are reviewed from the Record screen.
  */
 test("review: change category, add, leave out", async ({ page }) => {
   const consoleWatch = watchConsole(page);
-  await page.route("http://localhost:8000/v1/home", (route) => route.abort());
   await newLockedMember(page, "review");
 
   await page.goto("/connect/bank?another=1");

@@ -37,7 +37,7 @@ import { useRealtimeEvent } from "@/store/realtime";
 import { useUnlockWithCode } from "@/store/recovery";
 import { useDeviceBlob, useOpenRequest, useUnlockOptions, useUnlockWithPasskey } from "@/store/unlock";
 import { safeNext } from "./SecureScreen";
-import YoureIn from "./YoureIn";
+import YoureIn, { NEW_BACKUP_CODE } from "./YoureIn";
 
 export function DeviceGlyph({ kind, size }: { kind: DeviceKind; size: number }) {
   return kind === "phone" ? <PhoneIcon size={size} /> : <LaptopIcon size={size} />;
@@ -655,6 +655,9 @@ function SetUpAgain({ next }: { next: string }) {
       <Lead className="mb-9">Your other devices and backup code need setting up again.</Lead>
       <Button variant="inkDeep" size="block" onClick={() => router.replace("/home/settings/security")}>
         Approve another device
+      </Button>
+      <Button variant="ground" size="block" className="mt-3" onClick={() => router.replace(NEW_BACKUP_CODE)}>
+        Make a new backup code
       </Button>
       <QuietLink onClick={() => router.replace(next)} className="mt-4">
         Go to my record

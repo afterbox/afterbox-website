@@ -36,10 +36,8 @@ export async function sealTo(publicKey: Uint8Array, plaintext: Uint8Array, aad: 
 }
 
 export type RecordKeys = {
-  /** For POST /v1/keys/setup. */
+  /** For POST /v1/keys/setup. The caller blanks its parts once sent. */
   body: KeysSetupBody;
-  /** This device's member part, for the backup code envelope. The caller wipes it. */
-  memberPart: Uint8Array;
 };
 
 /**
@@ -61,7 +59,6 @@ export async function createRecordKeys(userId: string): Promise<RecordKeys> {
         afterboxPart: toBase64url(afterbox),
         trustedPartSealed: toBase64url(trustedSealed),
       },
-      memberPart: Uint8Array.from(member),
     };
   } finally {
     wipe(member, afterbox, trusted);
@@ -80,14 +77,22 @@ export async function createRelayKeyPair(): Promise<RelayKeyPair> {
   return { privateKey, publicKey: toBase64url(publicKey) };
 }
 
-/** Opens a relayed `sealedBlob` with the relay private key; AAD `relay:<requestId>:<userId>`. The caller wipes both. */
-export async function openRelay(privateKey: Uint8Array, sealed: Uint8Array, requestId: string, userId: string): Promise<Uint8Array> {
+/** Opens `enc(32) ‖ ct` with a raw X25519 private key. The caller wipes both. */
+async function openSealed(privateKey: Uint8Array, sealed: Uint8Array, aad: string): Promise<Uint8Array> {
   const suite = makeSuite();
   const recipientKey = await suite.kem.deserializePrivateKey(privateKey);
   const plain = await suite.open(
     { recipientKey, enc: sealed.slice(0, ENC_LENGTH) as BufferSource, info: INFO },
     sealed.slice(ENC_LENGTH) as BufferSource,
-    utf8(`relay:${requestId}:${userId}`) as BufferSource,
+    utf8(aad) as BufferSource,
   );
   return new Uint8Array(plain);
 }
+
+/** Opens a relayed `sealedBlob` with the relay private key; AAD `relay:<requestId>:<userId>`. The caller wipes both. */
+export const openRelay = (privateKey: Uint8Array, sealed: Uint8Array, requestId: string, userId: string) =>
+  openSealed(privateKey, sealed, `relay:${requestId}:${userId}`);
+
+/** Opens POST /v1/recovery/member-part's `sealedPart`; AAD `member-part:<userId>`. The caller wipes both. */
+export const openMemberPart = (privateKey: Uint8Array, sealed: Uint8Array, userId: string) =>
+  openSealed(privateKey, sealed, `member-part:${userId}`);

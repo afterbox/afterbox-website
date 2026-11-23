@@ -1,8 +1,8 @@
 /**
  * Every ceremony that touches key material, against the real API. The store hooks call these; screens never do.
  * - Passkeys go through @simplewebauthn/browser.
- * - The device blob (and, on a device that made or recovered it, the member part) live in the vault: IndexedDB
- *   under non-extractable WebCrypto keys. Buffers are wiped once sent.
+ * - The device blob lives in the vault: IndexedDB under non-extractable WebCrypto keys. The member part is never
+ *   kept: a backup code asks the server for it, sealed to a throwaway key, and wipes it. Buffers are wiped once sent.
  * - Request bodies here are never logged.
  */
 
@@ -10,11 +10,22 @@ import { startAuthentication, startRegistration, WebAuthnError } from "@simplewe
 import { fromBase64url, toBase64url, wipe } from "@/lib/api/base64url";
 import { api, seg } from "@/lib/api/client";
 import { ApiError, UnlockRequiredError, isApiError } from "@/lib/api/errors";
-import type { DeviceBlobReply, Envelope, SealedBlobReply } from "@/lib/api/types";
+import type { DeviceBlobReply, Envelope, SealedBlobReply, SealedPartReply } from "@/lib/api/types";
 import { lockEnvelope, openEnvelope } from "./backup";
-import { createRecordKeys, createRelayKeyPair, openRelay } from "./crypto";
+import { createRecordKeys, createRelayKeyPair, openMemberPart, openRelay } from "./crypto";
 import { thisDeviceInfo } from "./deviceInfo";
-import { deleteMatching, deleteSecret, forgetMember, getSecret, hasSecret, names, putSecret, vaultNames, type RelayKind } from "./vault";
+import {
+  deleteMatching,
+  deleteSecret,
+  dropLegacyMemberParts,
+  forgetMember,
+  getSecret,
+  hasSecret,
+  names,
+  putSecret,
+  vaultNames,
+  type RelayKind,
+} from "./vault";
 
 /** What the screens show when a passkey ceremony fails or is cancelled. */
 export const PASSKEY_ERROR = "That didn’t go through. Try again.";
@@ -38,7 +49,10 @@ function toPasskeyError(error: unknown): Error {
 let currentUserId: string | null = null;
 
 export function setCurrentUser(userId: string | null) {
+  if (userId !== currentUserId) needsPasskey = false;
   currentUserId = userId;
+  // Older builds kept the member part on the device: delete any copy left behind.
+  if (userId && typeof indexedDB !== "undefined") void dropLegacyMemberParts().catch(() => undefined);
 }
 
 export const getCurrentUser = () => currentUserId;
@@ -134,16 +148,6 @@ export async function hasDeviceBlob(userId?: string) {
   }
 }
 
-export async function hasMemberPart(userId?: string) {
-  const id = userId ?? currentUserId;
-  if (!id || typeof indexedDB === "undefined") return false;
-  try {
-    return await hasSecret(vaultNames.memberPart(id));
-  } catch {
-    return false;
-  }
-}
-
 async function storeBlob(userId: string, deviceBlob: Uint8Array) {
   await putSecret(vaultNames.deviceBlob(userId), deviceBlob);
 }
@@ -152,7 +156,7 @@ async function storeBlob(userId: string, deviceBlob: Uint8Array) {
 export async function dropDeviceBlob(userId?: string) {
   const id = userId ?? currentUserId;
   if (!id) return;
-  await Promise.all([deleteSecret(vaultNames.deviceBlob(id)), deleteSecret(vaultNames.memberPart(id))]);
+  await deleteSecret(vaultNames.deviceBlob(id));
 }
 
 /** POST /v1/unlock with the stored blob. Throws UnlockRequiredError when there's no blob. */
@@ -162,21 +166,29 @@ export async function unlockWithBlob(userId?: string): Promise<void> {
   if (!blob) throw new UnlockRequiredError();
   try {
     await api.post("/v1/unlock", { deviceBlob: toBase64url(blob) });
+    needsPasskey = false;
   } finally {
     wipe(blob);
   }
 }
 
 let unlocking: Promise<void> | null = null;
+/**
+ * Set once a silent unlock answered 403 (a fresh sign-in, not bound to this device yet): until the passkey runs and
+ * an unlock succeeds, a 423 goes straight to /unlock instead of spending another of the 10 unlocks per 15 minutes.
+ */
+let needsPasskey = false;
 
 /**
  * For the API client's 423: a silent re-unlock in a session already bound to this device. A fresh sign-in
  * (unbound) answers 403, which means "confirm with the passkey on /unlock": UnlockRequiredError.
  */
 export function silentUnlock(): Promise<void> {
+  if (needsPasskey) return Promise.reject(new UnlockRequiredError());
   unlocking ??= unlockWithBlob()
     .catch((error: unknown) => {
       if (isApiError(error) && error.status === 429) throw error;
+      if (isApiError(error) && error.status === 403) needsPasskey = true;
       throw new UnlockRequiredError();
     })
     .finally(() => {
@@ -203,8 +215,8 @@ export async function unlockWithPasskey(userId?: string): Promise<void> {
 /* Locking the record (01 → 03) */
 
 /**
- * Registers this device's passkey, makes the record key, sends the pieces, keeps the blob (and the member part
- * for a backup code), then unlocks this session. Returns nothing secret.
+ * Registers this device's passkey, makes the record key, sends the pieces, keeps the blob, then unlocks this
+ * session. Returns nothing secret; the member part is not kept.
  */
 export async function lockRecord(userId: string): Promise<void> {
   const keys = await createRecordKeys(userId);
@@ -213,9 +225,8 @@ export async function lockRecord(userId: string): Promise<void> {
     const reply = await withSessionPasskey(userId, () => api.post<DeviceBlobReply>("/v1/keys/setup", keys.body));
     blob = fromBase64url(reply.deviceBlob);
     await storeBlob(userId, blob);
-    await putSecret(vaultNames.memberPart(userId), keys.memberPart);
   } finally {
-    wipe(keys.memberPart, blob);
+    wipe(blob);
     keys.body.memberPart = "";
     keys.body.afterboxPart = "";
   }
@@ -224,16 +235,24 @@ export async function lockRecord(userId: string): Promise<void> {
 
 /* The backup code */
 
-/** Locks this device's member part with a new code and stores the envelope (step-up: the client asks the passkey). */
+/**
+ * Makes a backup code on any unlocked device: a throwaway HPKE key, POST /v1/recovery/member-part (A · U · S: the
+ * client runs the passkey on 403 STEP_UP_REQUIRED and re-unlocks on 423), the sealed part opened in memory, the
+ * envelope locked with the code and PUT. The part and the private key are wiped whatever happens; nothing is kept.
+ */
 export async function saveBackupCode(code: string, userId?: string): Promise<void> {
   const id = requireUser(userId);
-  const part = await getSecret(vaultNames.memberPart(id));
-  if (!part) throw new ApiError(409, "CONFLICT", "Make your backup code on the device you first locked your record with.");
+  const relay = await createRelayKeyPair();
+  let sealed: Uint8Array | null = null;
+  let part: Uint8Array | null = null;
   try {
+    const reply = await api.post<SealedPartReply>("/v1/recovery/member-part", { relayPublicKey: relay.publicKey });
+    sealed = fromBase64url(reply.sealedPart);
+    part = await openMemberPart(relay.privateKey, sealed, id);
     const envelope = await lockEnvelope(code, part);
     await api.put("/v1/recovery/envelope", envelope);
   } finally {
-    wipe(part);
+    wipe(relay.privateKey, sealed, part);
   }
 }
 
@@ -264,7 +283,6 @@ export async function unlockWithCode(code: string, userId?: string): Promise<boo
     const reply = await withSessionPasskey(id, () => api.post<DeviceBlobReply>("/v1/devices/enrol", { memberPart: toBase64url(part) }));
     blob = fromBase64url(reply.deviceBlob);
     await storeBlob(id, blob);
-    await putSecret(vaultNames.memberPart(id), part);
   } finally {
     wipe(part, blob);
   }
@@ -332,8 +350,6 @@ async function collect(userId: string, kind: RelayKind, requestId: string, path:
     sealed = fromBase64url(reply.sealedBlob);
     blob = await openRelay(privateKey, sealed, requestId, userId);
     await storeBlob(userId, blob);
-    // A relayed device never sees the member part: it can't make a backup code (BACKEND_ISSUES.md).
-    await deleteSecret(vaultNames.memberPart(userId));
   } finally {
     wipe(privateKey, sealed, blob);
   }

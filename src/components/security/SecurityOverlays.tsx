@@ -21,7 +21,6 @@ import { useApproval, useApproveDevice, useDeclineDevice } from "@/store/approva
 import { useRemoveDevice } from "@/store/devices";
 import { useApproveHelp, useCancelHelp, useDeclineHelp, useHelpRequest } from "@/store/help";
 import { useMe } from "@/store/me";
-import { useCanMakeBackupCode } from "@/store/recovery";
 import { useSecurityOverview } from "@/store/security";
 
 const failure = (error: unknown) => (error instanceof PasskeyError ? PASSKEY_ERROR : errorCopy(error));
@@ -135,7 +134,7 @@ export function ApproveDeviceOverlay() {
           </Square>
           <div className="min-w-0 flex-1">
             <p className="text-[15px] text-ink">{request.name}</p>
-            <p className="mt-0.5 text-[13px] text-ink-soft">{[request.city, timeAgoIso(request.requestedAt)].filter(Boolean).join(" · ")}</p>
+            <p className="mt-0.5 text-[13px] text-ink-soft">{timeAgoIso(request.requestedAt)}</p>
           </div>
         </div>
       ) : (
@@ -187,7 +186,7 @@ export function HelpRequestOverlay() {
       </div>
       {help.data ? (
         <p className="mb-8 text-center text-[13px] text-ink-soft">
-          {[help.data.deviceLabel, help.data.city, timeAgoIso(help.data.requestedAt)].filter(Boolean).join(" · ")}
+          {[help.data.deviceLabel, timeAgoIso(help.data.requestedAt)].filter(Boolean).join(" · ")}
         </p>
       ) : (
         <Sk className="mx-auto mb-8 h-3 w-48" />
@@ -222,7 +221,7 @@ export function HelpAlertOverlay() {
       </div>
       {help.data ? (
         <div className="mb-8 rounded-panel border border-line bg-ground px-5 py-[18px] text-center text-[13px] text-ink-soft">
-          {[help.data.deviceLabel, help.data.city, timeAgoIso(help.data.requestedAt)].filter(Boolean).join(" · ")}
+          {[help.data.deviceLabel, timeAgoIso(help.data.requestedAt)].filter(Boolean).join(" · ")}
         </div>
       ) : (
         <CardSkeleton />
@@ -299,29 +298,14 @@ export function RemoveDeviceOverlay() {
   );
 }
 
-/* Settings → Backup code → Add: the same step as 03. Only on a device that holds the member part. */
+/* Settings → Backup code → Add (or a new one): the same step as 03. Any unlocked device can make one. */
 
 export function BackupCodeOverlay() {
   const { close } = useLayers();
   const me = useMe();
-  const canMake = useCanMakeBackupCode(me.data?.id);
   const [code] = useState(generateCode);
 
-  if (!me.data || canMake.isPending) return null;
-
-  if (!canMake.data) {
-    return (
-      <Overlay kind="modal" width={480} onClose={close} label="Backup code">
-        <div className="text-center">
-          <DialogTitle className="mb-2">Make it on your first device</DialogTitle>
-          <Lead className="mb-8">A backup code can only be made on the device you first locked your record with.</Lead>
-        </div>
-        <Button variant="ground" size="block" onClick={close}>
-          Close
-        </Button>
-      </Overlay>
-    );
-  }
+  if (!me.data) return null;
 
   return (
     <Overlay kind="modal" width={520} onClose={close} label="Backup code">

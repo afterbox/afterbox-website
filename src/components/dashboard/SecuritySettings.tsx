@@ -166,7 +166,7 @@ function DevicesAndAccess({ overview }: { overview: SecurityOverview }) {
               <Row
                 icon={<DeviceGlyph kind={device.kind} size={20} />}
                 title={device.name}
-                sub={device.thisDevice ? "Used now" : [`Used ${lastUsed(device.lastUsedAt)}`, device.city].filter(Boolean).join(" · ")}
+                sub={device.thisDevice ? "Used now" : `Used ${lastUsed(device.lastUsedAt)}`}
               >
                 {device.thisDevice ? (
                   <Pill tone="added">This device</Pill>
@@ -200,7 +200,12 @@ function DevicesAndAccess({ overview }: { overview: SecurityOverview }) {
         </Row>
         <Row icon={<KeyIcon size={20} />} title="Backup code" sub="Optional">
           {ways.backupCode ? (
-            <On />
+            <span className="flex items-center gap-4">
+              <button type="button" onClick={() => open("backup-code")} className={`${actionClasses} text-ink-deep hover:opacity-80`}>
+                New code
+              </button>
+              <On />
+            </span>
           ) : (
             <button type="button" onClick={() => open("backup-code")} className={`${actionClasses} min-w-8 justify-end text-ink-deep hover:opacity-80`}>
               Add

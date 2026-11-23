@@ -1,6 +1,6 @@
 /**
- * Secrets kept on this device: the device blob, the member part (only on a device that made or recovered it),
- * and relay private keys while a device approval or help request is open.
+ * Secrets kept on this device: the device blob, and relay private keys while a device approval or help request
+ * is open. The member part is never kept: a backup code asks POST /v1/recovery/member-part for it each time.
  *
  * Each secret is encrypted with its own AES-GCM key created by WebCrypto with `extractable: false`, and the
  * CryptoKey object is stored next to the ciphertext in IndexedDB. Script on the page can ask the browser to use
@@ -94,7 +94,8 @@ export type RelayKind = "device" | "help";
 
 export const vaultNames = {
   deviceBlob: (userId: string) => `device-blob:${userId}`,
-  memberPart: (userId: string) => `member-part:${userId}`,
+  /** Old builds kept an encrypted member part under `member-part:<userId>`. Only ever deleted now. */
+  legacyMemberPartPrefix: "member-part:",
   relay: (userId: string, kind: RelayKind, requestId: string) => `relay:${userId}:${kind}:${requestId}`,
   relayPrefix: (userId: string) => `relay:${userId}:`,
 };
@@ -103,9 +104,13 @@ export const vaultNames = {
 export async function forgetMember(userId: string) {
   await Promise.all([
     deleteSecret(vaultNames.deviceBlob(userId)),
-    deleteSecret(vaultNames.memberPart(userId)),
     deleteMatching(vaultNames.relayPrefix(userId)),
   ]);
+}
+
+/** Deletes every member part an older build stored on this device. */
+export async function dropLegacyMemberParts() {
+  await deleteMatching(vaultNames.legacyMemberPartPrefix);
 }
 
 /** Only for tests: closes the connection so the database can be deleted. */

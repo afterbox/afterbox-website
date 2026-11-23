@@ -14,7 +14,9 @@ export const metaKeys = {
 export function useCategories(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: metaKeys.categories,
-    queryFn: ({ signal }) => api.get<MetaCategories>("/v1/meta/categories", { signal }),
+    // Also the unlock probe (useRecordAccess): it must reach the server, whose `private, max-age=3600` would otherwise
+    // let the browser answer 200 from its own cache while the record is locked. The query layer keeps it an hour.
+    queryFn: ({ signal }) => api.get<MetaCategories>("/v1/meta/categories", { signal, cache: "no-store" }),
     staleTime: staleTimes.hour,
     gcTime: staleTimes.hour,
     enabled: options.enabled ?? true,

@@ -21,7 +21,8 @@ async function openWith(privateKey: Uint8Array, sealed: Uint8Array, aad: string)
 
 describe("record keys (POST /v1/keys/setup)", () => {
   it("sends parts that rebuild the private key for publicKey, at the sizes the API checks", async () => {
-    const { body, memberPart } = await createRecordKeys(USER);
+    const keys = await createRecordKeys(USER);
+    const { body } = keys;
     const publicKey = fromBase64url(body.publicKey);
     const member = fromBase64url(body.memberPart);
     const afterbox = fromBase64url(body.afterboxPart);
@@ -30,7 +31,8 @@ describe("record keys (POST /v1/keys/setup)", () => {
     expect(member).toHaveLength(33);
     expect(afterbox).toHaveLength(33);
     expect(sealed).toHaveLength(81);
-    expect(memberPart).toEqual(member);
+    // Nothing but the request body leaves createRecordKeys: the member part isn't kept for later.
+    expect(Object.keys(keys)).toEqual(["body"]);
     const rebuilt = await combine([member, afterbox]);
     expect(x25519.getPublicKey(rebuilt)).toEqual(publicKey);
   });

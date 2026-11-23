@@ -8,11 +8,14 @@ import { useReveal } from "@/components/ui/onboarding/Motion";
 import ScreenTitle from "@/components/ui/onboarding/ScreenTitle";
 import { RepeatIcon } from "@/components/ui/icons";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { hookLines } from "@/content/onboarding";
 import { takeAfterSignIn } from "@/lib/afterSignIn";
 import { stagger } from "@/lib/motion";
 import { formatMoney } from "@/lib/money";
+import { resumeFrom } from "@/lib/onboarding/resume";
+import { useMe } from "@/store/me";
+
 
 const reference = "truncate text-xs/[normal] font-medium tracking-[0.04em] text-ink-soft tabular-nums";
 const pill = "inline-flex h-7 flex-none items-center gap-1.5 rounded-full px-2.5 text-xs/[normal] font-semibold whitespace-nowrap text-on-night";
@@ -21,12 +24,21 @@ const pill = "inline-flex h-7 flex-none items-center gap-1.5 rounded-full px-2.5
 export default function StartScreen() {
   const { lines, flagged } = hookLines;
   const router = useRouter();
+  const me = useMe();
+  const step = me.data?.onboardingStep ?? null;
+  const keysReady = me.data?.keysReady ?? false;
+  const signedIn = Boolean(me.data);
+  const left = useRef(false);
 
-  // Google sign-in lands new accounts here: an invite link they came from comes first.
+  // Google sign-in lands new accounts here: an invite link they came from comes first. Then a member who signed
+  // in part-way through onboarding carries on from the furthest step they reached.
   useEffect(() => {
-    const next = takeAfterSignIn();
-    if (next) router.replace(next);
-  }, [router]);
+    if (left.current) return;
+    const next = takeAfterSignIn() ?? (signedIn ? resumeFrom(step, keysReady) : null);
+    if (!next) return;
+    left.current = true;
+    router.replace(next);
+  }, [keysReady, router, signedIn, step]);
   const reveal = useReveal();
   // Lines come in one by one (the flagged one last), then their labels in the same order.
   const lineDelay = (index: number) => (index + 1) * stagger.hook;

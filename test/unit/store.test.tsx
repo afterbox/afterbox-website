@@ -11,6 +11,7 @@ import { useStartEmail, useVerifyCode } from "@/store/auth";
 import { useRemoveDevice } from "@/store/devices";
 import { useAddFind, useChangeFindCategory, useLeaveOutFind } from "@/store/finds";
 import { useHome } from "@/store/home";
+import { useCategories } from "@/store/meta";
 import { meKeys } from "@/store/me";
 import { useUpdateNotifications, notificationKeys } from "@/store/notifications";
 import { useInvitePerson } from "@/store/people";
@@ -75,6 +76,15 @@ describe("queries", () => {
     const { result } = renderHook(() => useHome(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.newFinds.line).toBe("A pension and a gym");
+  });
+
+  it("useCategories (the unlock probe) skips the browser's HTTP cache, so a locked record answers 423", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    server.use(http.get(url("/v1/meta/categories"), () => json({ categories: [] })));
+    const { result } = renderHook(() => useCategories(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const call = fetchSpy.mock.calls.find(([input]) => String(input).endsWith("/v1/meta/categories"));
+    expect(call?.[1]?.cache).toBe("no-store");
   });
 
   it("doesn't retry a 4xx", async () => {
@@ -265,8 +275,8 @@ describe("settings", () => {
   it("useRemoveDevice takes the row out at once and puts it back on failure", async () => {
     const overview: SecurityOverview = {
       devices: [
-        { id: "d1", name: "Chrome on Mac", browser: "Chrome", device: "Mac", kind: "laptop", city: null, lastUsedAt: null, thisDevice: true },
-        { id: "d2", name: "Safari on iPhone", browser: "Safari", device: "iPhone", kind: "phone", city: null, lastUsedAt: null, thisDevice: false },
+        { id: "d1", name: "Chrome on Mac", browser: "Chrome", device: "Mac", kind: "laptop", lastUsedAt: null, thisDevice: true },
+        { id: "d2", name: "Safari on iPhone", browser: "Safari", device: "iPhone", kind: "phone", lastUsedAt: null, thisDevice: false },
       ],
       backupCode: false,
       trustedPerson: null,

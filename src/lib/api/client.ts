@@ -37,6 +37,8 @@ export type RequestOptions = {
   signal?: AbortSignal;
   /** Return the Response as it is (file downloads). */
   raw?: boolean;
+  /** The browser's HTTP cache mode (`no-store` for a request that must reach the server). */
+  cache?: RequestCache;
 };
 
 type Recovery = "refresh" | "unlock" | "stepUp" | "wait";
@@ -87,7 +89,7 @@ async function send(method: string, path: string, options: RequestOptions): Prom
   const timeout = method === "GET" && !options.raw && canCombine ? AbortSignal.timeout(GET_TIMEOUT_MS) : undefined;
   const signal = timeout && options.signal ? AbortSignal.any([options.signal, timeout]) : (timeout ?? options.signal);
   try {
-    return await fetch(`${API_URL}${path}`, { method, headers, body, credentials: "include", signal });
+    return await fetch(`${API_URL}${path}`, { method, headers, body, credentials: "include", signal, cache: options.cache });
   } catch (error) {
     if (options.signal?.aborted) throw error;
     throw new ApiError(0, "NETWORK", "You’re offline.");
@@ -117,22 +119,8 @@ export function refreshSession(): Promise<boolean> {
   return refreshing;
 }
 
-/**
- * Routes that read the member's finds (`FindsReader.reviewable` on the backend) go one at a time from this tab:
- * two at once can hang on the backend and hold a database connection (docs/BACKEND_ISSUES.md #4).
- */
-const ONE_AT_A_TIME = /^\/v1\/(home|finds|record)(\?|$)/;
-let queue: Promise<unknown> = Promise.resolve();
-
-function sendInTurn(method: string, path: string, options: RequestOptions): Promise<Response> {
-  if (method !== "GET" || !ONE_AT_A_TIME.test(path)) return send(method, path, options);
-  const turn = queue.then(() => send(method, path, options));
-  queue = turn.catch(() => undefined);
-  return turn;
-}
-
 async function request<T>(method: string, path: string, options: RequestOptions, used: Set<Recovery>): Promise<T> {
-  const response = await sendInTurn(method, path, options);
+  const response = await send(method, path, options);
   if (response.ok) {
     if (options.raw) return response as T;
     if (response.status === 204) return undefined as T;

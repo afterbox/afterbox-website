@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, seg } from "@/lib/api/client";
 import type { HelpRequest } from "@/lib/api/types";
 import { collectHelp, dropRelay, requestHelp } from "@/lib/security/keychain";
-import { recoveryKeys } from "../recovery";
 import { unlockKeys } from "../unlock";
 
 export const helpKeys = {
@@ -38,7 +37,6 @@ export function useCollectHelp() {
     mutationFn: ({ requestId, userId }: { requestId: string; userId: string }) => collectHelp(requestId, userId),
     onSuccess: (_, { userId }) => {
       client.setQueryData(unlockKeys.device(userId), true);
-      client.setQueryData(recoveryKeys.canMakeCode(userId), false);
       client.invalidateQueries();
     },
   });

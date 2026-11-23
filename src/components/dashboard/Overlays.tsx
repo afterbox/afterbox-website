@@ -26,6 +26,7 @@ import { useDocumentPicker } from "@/components/ui/dashboard/home";
 import { DialogTitle, Overlay, PhoneSheet, Step, useLayers } from "@/components/ui/dashboard/Layer";
 import { Sk } from "@/components/ui/dashboard/Skeleton";
 import { useMobile } from "@/components/ui/dashboard/useMedia";
+import { useMe } from "@/store/me";
 import { anyErrorCopy, isApiError } from "@/lib/api/errors";
 import type { CategoryId, DetailField, Frequency, Item, Relation, ScanField } from "@/lib/api/types";
 import { categoryInfo, fieldLabels, frequencies, guessCategory, pickerOrder, relations } from "@/lib/categories";
@@ -440,6 +441,8 @@ function TypeOverlay() {
   const mobile = useMobile();
   const picker = usePickerCategories();
   const addItem = useAddItem();
+  // Typed-in amounts are in the member's home currency (the API adds it).
+  const currency = useMe().data?.homeCurrency;
   const presetParam = param("category");
   const preset = presetParam && picker.some((category) => category.id === presetParam) ? (presetParam as CategoryId) : null;
   const via = param("via");
@@ -505,12 +508,12 @@ function TypeOverlay() {
               <div className="grid grid-cols-1 gap-x-3 gap-y-5 min-[400px]:grid-cols-2">
                 {category.kind === "own" ? (
                   <>
-                    <MoneyField key="worth" label="Worth about" pence={value} onChange={setValue} disabled={saving} />
+                    {currency && <MoneyField key="worth" label="Worth about" pence={value} currency={currency} onChange={setValue} disabled={saving} />}
                     <DateField name="since" label="Since" value={since} onChange={setSince} initial={since ?? "2020-03-01"} max={todayIso()} placeholder="Choose" disabled={saving} />
                   </>
                 ) : (
                   <>
-                    <MoneyField key="amount" label="Amount" pence={amount} onChange={setAmount} withPence disabled={saving} />
+                    {currency && <MoneyField key="amount" label="Amount" pence={amount} currency={currency} onChange={setAmount} withPence disabled={saving} />}
                     <SelectField
                       label="How often"
                       value={frequency}

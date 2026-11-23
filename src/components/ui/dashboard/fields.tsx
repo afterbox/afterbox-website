@@ -6,32 +6,37 @@ import Button from "@/components/ui/Button";
 import FormMessage from "@/components/ui/FormMessage";
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon } from "@/components/ui/icons";
 import TextField, { fieldClasses } from "@/components/ui/TextField";
-import { formatDate, formatMoneyTyping, parsePence, toIso, todayIso } from "@/lib/dashboard/format";
+import { formatDate, formatMoneyTyping, parseTypedMinor, toIso, todayIso, typedFromMinor } from "@/lib/dashboard/format";
+import { currencySymbol } from "@/lib/money";
 import { pressable, transition } from "@/lib/motion";
 import { useMotionTokens } from "@/lib/useMotionTokens";
 import { DialogTitle, PhoneSheet, useLayers } from "./Layer";
 import { useMobile } from "./useMedia";
 
-/* Money: "£180,000" as you type, the caret kept in place, the value in pence. */
+/* Money: "£180,000" as you type (the currency's own symbol, from Intl), the caret kept in place, the value in minor units. */
 
 export function MoneyField({
   label,
   pence,
+  currency,
   onChange,
   error,
   disabled,
   withPence = false,
 }: {
   label: string;
+  /** Whole minor units of `currency`. */
   pence: number | null;
+  /** ISO 4217 code: the member's home currency for typed-in items. */
+  currency: string;
   onChange: (pence: number | null) => void;
   error?: string | null;
   disabled?: boolean;
-  /** Amounts paid ("£24.10") tidy to two decimals when you leave the field; values ("£180,000") don't. */
+  /** Amounts paid ("£24.10") tidy to the currency's decimals when you leave the field; values ("£180,000") don't. */
   withPence?: boolean;
 }) {
   const ref = useRef<HTMLInputElement>(null);
-  const [text, setText] = useState(() => (pence === null ? "" : formatMoneyTyping(String(pence / 100), 0).text));
+  const [text, setText] = useState(() => (pence === null ? "" : formatMoneyTyping(typedFromMinor(pence, currency, withPence), 0, currency).text));
   const caret = useRef<number | null>(null);
 
   useEffect(() => {
@@ -48,22 +53,20 @@ export function MoneyField({
       labelStyle="form"
       inputMode="decimal"
       autoComplete="off"
-      placeholder="£0"
+      placeholder={`${currencySymbol(currency)}0`}
       value={text}
       error={error}
       disabled={disabled}
       onChange={(event) => {
-        const next = formatMoneyTyping(event.target.value, event.target.selectionStart ?? event.target.value.length);
+        const next = formatMoneyTyping(event.target.value, event.target.selectionStart ?? event.target.value.length, currency);
         caret.current = next.caret;
         setText(next.text);
-        onChange(parsePence(next.text));
+        onChange(parseTypedMinor(next.text, currency));
       }}
       onBlur={() => {
-        const value = parsePence(text);
+        const value = parseTypedMinor(text, currency);
         if (value === null) return;
-        const whole = Math.floor(value / 100);
-        const tidy = withPence || value % 100 !== 0 ? `${whole}.${String(value % 100).padStart(2, "0")}` : String(whole);
-        setText(formatMoneyTyping(tidy, 0).text);
+        setText(formatMoneyTyping(typedFromMinor(value, currency, withPence), 0, currency).text);
       }}
     />
   );

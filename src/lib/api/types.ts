@@ -70,7 +70,6 @@ export type Device = {
   browser: string;
   device: string;
   kind: DeviceKind;
-  city: string | null;
   lastUsedAt: string | null;
   thisDevice: boolean;
 };
@@ -86,6 +85,7 @@ export type SecurityOverview = { devices: Device[]; backupCode: boolean; trusted
 export type KeysSetupBody = { publicKey: string; memberPart: string; afterboxPart: string; trustedPartSealed: string };
 export type DeviceBlobReply = { deviceId: string; deviceBlob: string };
 export type SealedBlobReply = { deviceId: string; sealedBlob: string };
+export type SealedPartReply = { sealedPart: string };
 
 export type ApprovalStatus = "pending" | "approved" | "declined" | "collected" | "expired";
 export type Approval = {
@@ -93,7 +93,6 @@ export type Approval = {
   browser: string;
   device: string;
   kind: DeviceKind;
-  city: string | null;
   requestedAt: string;
   status: ApprovalStatus;
 };
@@ -101,7 +100,7 @@ export type Approval = {
 export type Kdf = { alg: "argon2id"; memoryKiB: number; iterations: number; parallelism: number; salt: string };
 export type Envelope = { lockedPart: string; kdf: Kdf };
 
-export type DeviceDescription = { name: string; browser: string; device: string; kind: DeviceKind; city?: string };
+export type DeviceDescription = { name: string; browser: string; device: string; kind: DeviceKind };
 
 /* Help */
 
@@ -109,7 +108,6 @@ export type HelpStatus = "pending" | "approved" | "declined" | "cancelled" | "co
 export type HelpRequest = {
   memberFirstName: string | null;
   deviceLabel: string;
-  city: string | null;
   requestedAt: string;
   status: HelpStatus;
   collectableAt: string | null;

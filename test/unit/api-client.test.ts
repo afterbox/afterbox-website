@@ -272,27 +272,7 @@ describe("429: respect retryAfter", () => {
   });
 });
 
-describe("one at a time for the routes that read finds", () => {
-  it("never overlaps GET /v1/home, /v1/record and /v1/finds", async () => {
-    let inFlight = 0;
-    let most = 0;
-    const slow = async () => {
-      inFlight += 1;
-      most = Math.max(most, inFlight);
-      await new Promise((resolve) => setTimeout(resolve, 30));
-      inFlight -= 1;
-      return json({ ok: true });
-    };
-    server.use(http.get(url("/v1/home"), slow), http.get(url("/v1/record"), slow), http.get(url("/v1/finds"), slow), http.get(url("/v1/people"), slow));
-    await Promise.all([api.get("/v1/home"), api.get("/v1/record?filter=all"), api.get("/v1/finds"), api.get("/v1/home")]);
-    expect(most).toBe(1);
-    // Other routes aren't held back.
-    inFlight = 0;
-    most = 0;
-    await Promise.all([api.get("/v1/people"), api.get("/v1/people")]);
-    expect(most).toBe(2);
-  });
-
+describe("GET timeout", () => {
   it("gives up on a GET that never answers, as a network error", async () => {
     configureClient({ getTimeoutMs: 200 });
     server.use(http.get(url("/v1/banks"), () => new Promise<never>(() => {})));
