@@ -127,3 +127,13 @@ export function formatMobile(raw: string) {
 
 export const isCompleteMobile = (text: string) => text === "" || /^\+44 \d{4} \d{3} \d{3}$/.test(text);
 export const isCompletePostcode = (text: string) => text === "" || /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/.test(text);
+
+/** "just now", "5 minutes ago" from an ISO timestamp (null: ""). */
+export function timeAgoIso(iso: string | null | undefined, now = Date.now()) {
+  return iso ? timeAgo(Date.parse(iso), now) : "";
+}
+
+/** Days from now to an ISO timestamp, never negative. */
+export function daysUntilIso(iso: string | null | undefined, now = Date.now()) {
+  return iso ? daysUntil(Date.parse(iso), now) : 0;
+}

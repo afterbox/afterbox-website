@@ -4,15 +4,14 @@ import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { CheckIcon } from "@/components/ui/icons";
 import Monogram from "@/components/ui/onboarding/Monogram";
+import type { Finding } from "@/lib/api/types";
 import { dimmed as dimmedOpacity, transition } from "@/lib/motion";
-import { formatMoney } from "@/lib/onboarding/format";
-import type { Finding } from "@/lib/onboarding/mock";
+import { everyWord, formatMoney } from "@/lib/money";
 
 type FindingRowProps = {
   finding: Finding;
   title: string;
   detail: string;
-  cancelled?: boolean;
   /** Set to be cancelled: everything but the action fades back. */
   dimmed?: boolean;
   /** Under the detail line, e.g. a flag note. */
@@ -22,17 +21,18 @@ type FindingRowProps = {
   className?: string;
 };
 
-/** A found item: monogram, two lines, and its monthly amount (or an action). */
-export default function FindingRow({
-  finding,
-  title,
-  detail,
-  cancelled = false,
-  dimmed = false,
-  note,
-  action,
-  className = "",
-}: FindingRowProps) {
+/** "£38.20" a month for most, "£220 a week" for rent paid weekly. */
+export function findingAmount(finding: Finding) {
+  if (finding.amount && finding.frequency && finding.frequency !== "monthly") {
+    return `${formatMoney(finding.amount)} ${everyWord[finding.frequency]}`;
+  }
+  return finding.monthly ? formatMoney(finding.monthly) : null;
+}
+
+/** A found item: monogram, two lines, and its amount (or an action). */
+export default function FindingRow({ finding, title, detail, dimmed = false, note, action, className = "" }: FindingRowProps) {
+  const cancelled = finding.cancelled;
+  const amount = findingAmount(finding);
   return (
     <li className={`flex items-center gap-3 border-line ${className}`}>
       <motion.div
@@ -43,8 +43,8 @@ export default function FindingRow({
       >
         <Monogram letters={finding.monogram} />
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] text-ink">{title}</p>
-          <p className="mt-0.5 text-[13px] text-ink-soft">{detail}</p>
+          <p className="truncate text-[15px] text-ink">{title}</p>
+          <p className="mt-0.5 truncate text-[13px] text-ink-soft">{detail}</p>
           {cancelled ? (
             <span className="mt-1 inline-flex items-center gap-1 text-xs/[normal] font-semibold text-positive">
               <CheckIcon size={12} strokeWidth={2.4} />
@@ -57,13 +57,9 @@ export default function FindingRow({
       </motion.div>
       {action && !cancelled ? (
         action
-      ) : (
-        <span
-          className={`text-[15px] font-semibold tabular-nums ${cancelled ? "text-ink-soft line-through" : "text-ink"}`}
-        >
-          {formatMoney(finding.monthly)}
-        </span>
-      )}
+      ) : amount ? (
+        <span className={`text-right text-[15px] font-semibold tabular-nums ${cancelled ? "text-ink-soft line-through" : "text-ink"}`}>{amount}</span>
+      ) : null}
     </li>
   );
 }

@@ -1,35 +1,36 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
 import Button from "@/components/ui/Button";
 import OnboardingCard from "@/components/ui/onboarding/OnboardingCard";
 import { CategoryGlyph } from "@/components/ui/onboarding/IconSquare";
 import { useReveal } from "@/components/ui/onboarding/Motion";
 import ScreenTitle from "@/components/ui/onboarding/ScreenTitle";
 import { RepeatIcon } from "@/components/ui/icons";
-import { formatMoney, sum } from "@/lib/onboarding/format";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { hookLines } from "@/content/onboarding";
+import { takeAfterSignIn } from "@/lib/afterSignIn";
 import { stagger } from "@/lib/motion";
-import { getHookLines } from "@/lib/onboarding/mock";
-import { readScenario, useOnboarding } from "@/lib/onboarding/store";
+import { formatMoney } from "@/lib/money";
 
 const reference = "truncate text-xs/[normal] font-medium tracking-[0.04em] text-ink-soft tabular-nums";
 const pill = "inline-flex h-7 flex-none items-center gap-1.5 rounded-full px-2.5 text-xs/[normal] font-semibold whitespace-nowrap text-on-night";
 
-/** 01: the hook. `?mock=full|few|thin` starts a fresh run with that scenario. */
+/** 01: the hook. */
 export default function StartScreen() {
-  const scenario = readScenario(useSearchParams().get("mock"));
-  const { actions } = useOnboarding();
-  const { lines, flagged } = getHookLines();
+  const { lines, flagged } = hookLines;
+  const router = useRouter();
+
+  // Google sign-in lands new accounts here: an invite link they came from comes first.
+  useEffect(() => {
+    const next = takeAfterSignIn();
+    if (next) router.replace(next);
+  }, [router]);
   const reveal = useReveal();
   // Lines come in one by one (the flagged one last), then their labels in the same order.
   const lineDelay = (index: number) => (index + 1) * stagger.hook;
   const chipDelay = (index: number) => lineDelay(lines.length + 1) + index * stagger.hook;
-
-  useEffect(() => {
-    if (scenario) actions.start(scenario);
-  }, [scenario, actions]);
 
   return (
     <OnboardingCard>
@@ -61,7 +62,7 @@ export default function StartScreen() {
             </motion.span>
           </div>
           <motion.p {...reveal.fade(chipDelay(lines.length))} className="mt-1.5 text-right text-xs/[normal] text-warn">
-            {formatMoney(sum(flagged.monthly))} a month · worth a look
+            {formatMoney(flagged.monthly)} a month · worth a look
           </motion.p>
         </motion.li>
       </ul>

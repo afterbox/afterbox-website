@@ -43,3 +43,11 @@ next-env.d.ts
 
 # docs
 /docs
+# Claude Code personal settings
+.claude/settings.local.json
+
+# Playwright: Tink sandbox credentials and run output
+.env.test.local
+/test-results/
+/playwright-report/
+/playwright/.cache/

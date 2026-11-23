@@ -4,10 +4,10 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { ChevronRightIcon, GlobeIcon, SearchIcon } from "@/components/ui/icons";
 import TextField from "@/components/ui/TextField";
+import type { Provider } from "@/lib/api/types";
 import { pressable, transition } from "@/lib/motion";
-import type { Bank } from "@/lib/onboarding/mock";
-import Monogram from "./Monogram";
 import { useCollapse } from "./Motion";
+import ProviderLogo from "./ProviderLogo";
 import QuietLink from "./QuietLink";
 import TinkNote from "./TinkNote";
 
@@ -18,17 +18,19 @@ function resultCount(query: string, count: number) {
 }
 
 type BankPickerProps = {
-  banks: Bank[];
+  banks: Provider[];
   /** Listed before anything is typed; the rest only come up in a search. */
-  featured: Bank[];
-  onChoose: (bank: Bank) => void;
+  featured: Provider[];
+  onChoose: (bank: Provider) => void;
+  /** The bank being opened: its row shows it's busy and the others wait. */
+  choosing?: string | null;
 };
 
 /**
- * Search plus the bank list. With no match it says UK only and offers adding things by hand.
+ * Search plus the bank list (Tink's providers). With no match it says UK only and offers adding things by hand.
  * Rows that drop out fade and close up, new ones open, and the rest slide into place.
  */
-export default function BankPicker({ banks, featured, onChoose }: BankPickerProps) {
+export default function BankPicker({ banks, featured, onChoose, choosing = null }: BankPickerProps) {
   const [query, setQuery] = useState("");
   const search = query.trim().toLowerCase();
   const matches = search ? banks.filter((bank) => bank.name.toLowerCase().includes(search)) : featured;
@@ -67,10 +69,11 @@ export default function BankPicker({ banks, featured, onChoose }: BankPickerProp
                   >
                     <button
                       type="button"
+                      disabled={choosing !== null}
                       onClick={() => onChoose(bank)}
-                      className={`group flex w-full cursor-pointer items-center gap-3.5 px-1 py-3.5 text-left text-[15px] text-ink sm:py-[15px] ${pressable}`}
+                      className={`group flex w-full cursor-pointer items-center gap-3.5 px-1 py-3.5 text-left text-[15px] text-ink disabled:cursor-default sm:py-[15px] ${pressable}`}
                     >
-                      <Monogram letters={bank.monogram} />
+                      <ProviderLogo name={bank.name} logoUrl={bank.logoUrl} />
                       <span className="flex-1">{bank.name}</span>
                       <ChevronRightIcon
                         size={16}

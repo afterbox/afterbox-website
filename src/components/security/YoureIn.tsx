@@ -5,23 +5,21 @@ import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { CheckIcon } from "@/components/ui/icons";
 import { Celebration, Lead, PageTitle } from "@/components/ui/dashboard/bits";
-import { deviceName, deviceWord } from "@/lib/security/device";
-import { setUnlock } from "@/lib/security/store";
+import { deviceName, deviceWord } from "@/lib/security/deviceInfo";
 
 const thisDevice = () => deviceWord(deviceName().device);
 
 /** 08: in on a new device, after another device, the backup code or the trusted person. */
-export default function YoureIn() {
+export default function YoureIn({ next = "/home" }: { next?: string }) {
   const router = useRouter();
   const [device] = useState(thisDevice);
 
   useEffect(() => {
-    router.prefetch("/home");
-  }, [router]);
+    router.prefetch(next);
+  }, [next, router]);
 
   function go() {
-    setUnlock("open");
-    router.replace("/home");
+    router.replace(next);
   }
 
   return (

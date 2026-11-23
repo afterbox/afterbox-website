@@ -11,6 +11,7 @@ import {
   DocumentIcon,
   HomeIcon,
   LockIcon,
+  ReceiptIcon,
   RepeatIcon,
   TrendIcon,
   UmbrellaIcon,
@@ -18,7 +19,7 @@ import {
 import { Link } from "@/components/ui/Links";
 import Monogram from "@/components/ui/onboarding/Monogram";
 import { pressable, transition } from "@/lib/motion";
-import type { CategoryIcon } from "@/lib/dashboard/mock";
+import type { CategoryIcon } from "@/lib/api/types";
 import { useMotionTokens } from "@/lib/useMotionTokens";
 
 const categoryIcons = {
@@ -28,12 +29,14 @@ const categoryIcons = {
   lock: LockIcon,
   card: CardIcon,
   repeat: RepeatIcon,
+  receipt: ReceiptIcon,
   bank: BankIcon,
   document: DocumentIcon,
 } as const;
 
-export function CategoryGlyph({ icon, size }: { icon: CategoryIcon; size: number }) {
-  const Icon = categoryIcons[icon];
+/** An icon the frontend doesn't know yet shows the "Something else" document. */
+export function CategoryGlyph({ icon, size }: { icon: CategoryIcon | string; size: number }) {
+  const Icon = categoryIcons[icon as CategoryIcon] ?? DocumentIcon;
   return <Icon size={size} />;
 }
 

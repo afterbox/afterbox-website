@@ -3,22 +3,18 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import CategoryScreen from "@/components/onboarding/CategoryScreen";
 import AfterHydration from "@/components/ui/onboarding/AfterHydration";
-import { getCategories, getCategory } from "@/lib/onboarding/mock";
 
 export const metadata: Metadata = {
   title: "What we found",
 };
 
-export function generateStaticParams() {
-  return getCategories().map((category) => ({ category: category.id }));
-}
-
+/** Any lower-case category id the API knows (bills, other, …); the screen handles one with no finds. */
 async function Category({ params }: Pick<PageProps<"/found/[category]">, "params">) {
-  const category = getCategory((await params).category);
-  if (!category) notFound();
+  const { category } = await params;
+  if (!/^[a-z-]{2,40}$/.test(category)) notFound();
   return (
     <AfterHydration>
-      <CategoryScreen categoryId={category.id} />
+      <CategoryScreen categoryId={category} />
     </AfterHydration>
   );
 }

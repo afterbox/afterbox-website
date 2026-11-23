@@ -4,34 +4,30 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { CheckIcon, FingerprintIcon, KeyIcon, PeopleIcon } from "@/components/ui/icons";
 import { Link } from "@/components/ui/Links";
-import Spinner from "@/components/ui/Spinner";
 import { BackLink, Lead, PageTitle, Pill, SectionLabel, Square } from "@/components/ui/dashboard/bits";
-import { FormNote } from "@/components/ui/dashboard/fields";
 import { useLayers } from "@/components/ui/dashboard/Layer";
 import Page from "@/components/ui/dashboard/Page";
 import Ready from "@/components/ui/dashboard/Ready";
 import { SettingsSkeleton } from "@/components/ui/dashboard/Skeleton";
 import { DeviceGlyph } from "@/components/security/UnlockScreens";
-import type { DashboardState } from "@/lib/dashboard/mock";
+import type { SecurityOverview } from "@/lib/api/types";
 import { pressable, transition } from "@/lib/motion";
-import { lastUsed } from "@/lib/security/device";
-import { get, PASSKEY_ERROR } from "@/lib/security/passkey";
-import { newBackupCode } from "@/lib/security/recovery";
-import { useAccountSecurity, useMemberPart, type AccountSecurity } from "@/lib/security/store";
+import { lastUsed } from "@/lib/security/deviceInfo";
 import { useMotionTokens } from "@/lib/useMotionTokens";
+import { useSecurityOverview } from "@/store/security";
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 /** What 14 and 15 both count: devices that can open the record, and the ways back in that are on. */
-export function accessSummary(account: AccountSecurity | null, state: DashboardState, thisDeviceId: string | null) {
-  const devices = account?.devices ?? [];
-  const others = devices.filter((device) => device.id !== thisDeviceId);
-  const helper = state.people[0] ?? null;
+export function accessSummary(overview: SecurityOverview) {
+  const devices = overview.devices;
+  const others = devices.filter((device) => !device.thisDevice);
+  const helper = overview.trustedPerson?.status === "accepted" ? overview.trustedPerson : null;
   const ways = {
-    thisDevice: Boolean(thisDeviceId && devices.some((device) => device.id === thisDeviceId)),
+    thisDevice: devices.some((device) => device.thisDevice),
     anotherDevice: others.length > 0,
     trustedPerson: Boolean(helper),
-    backupCode: Boolean(account?.backupSaved),
+    backupCode: overview.backupCode,
   };
   return {
     devices,
@@ -42,10 +38,9 @@ export function accessSummary(account: AccountSecurity | null, state: DashboardS
   };
 }
 
-export function useAccessLine(state: DashboardState) {
-  const account = useAccountSecurity();
-  const part = useMemberPart();
-  return account ? accessSummary(account, state, part?.deviceId ?? null).line : null;
+export function useAccessLine() {
+  const overview = useSecurityOverview();
+  return overview.data ? accessSummary(overview.data).line : null;
 }
 
 const rowClasses = "flex items-center gap-3.5 py-4";
@@ -147,31 +142,11 @@ function Questions({ helper }: { helper: string | null }) {
 
 /* 15: Devices and access */
 
-function DevicesAndAccess({ state }: { state: DashboardState }) {
+function DevicesAndAccess({ overview }: { overview: SecurityOverview }) {
   const { open } = useLayers();
   const { resize } = useMotionTokens();
-  const account = useAccountSecurity();
-  const part = useMemberPart();
-  const thisDeviceId = part?.deviceId ?? null;
-  const { devices, others, helper, ways } = accessSummary(account, state, thisDeviceId);
-  const sorted = [...devices].sort((a, b) => Number(b.id === thisDeviceId) - Number(a.id === thisDeviceId) || b.lastUsedAt - a.lastUsedAt);
-  const helperFirst = helper ? helper.name.split(" ")[0] : null;
-  const [adding, setAdding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function addBackupCode() {
-    setAdding(true);
-    setError(null);
-    try {
-      await get();
-      newBackupCode();
-      open("backup-code");
-    } catch {
-      setError(PASSKEY_ERROR);
-    } finally {
-      setAdding(false);
-    }
-  }
+  const { devices, others, helper, ways } = accessSummary(overview);
+  const helperFirst = helper?.name ? helper.name.split(" ")[0] : null;
 
   return (
     <Page settings>
@@ -182,34 +157,27 @@ function DevicesAndAccess({ state }: { state: DashboardState }) {
       <SectionLabel className="mb-1">DEVICES</SectionLabel>
       <div className="border-t border-line">
         <AnimatePresence initial={false}>
-          {sorted.map((device) => {
-            const current = device.id === thisDeviceId;
-            return (
-              <motion.div
-                key={device.id}
-                exit={{ opacity: 0, height: 0, transition: { ...transition("base"), height: resize("base") } }}
-                className="overflow-hidden border-b border-line last:border-b-0"
+          {devices.map((device) => (
+            <motion.div
+              key={device.id}
+              exit={{ opacity: 0, height: 0, transition: { ...transition("base"), height: resize("base") } }}
+              className="overflow-hidden border-b border-line last:border-b-0"
+            >
+              <Row
+                icon={<DeviceGlyph kind={device.kind} size={20} />}
+                title={device.name}
+                sub={device.thisDevice ? "Used now" : [`Used ${lastUsed(device.lastUsedAt)}`, device.city].filter(Boolean).join(" · ")}
               >
-                <Row
-                  icon={<DeviceGlyph kind={device.kind} size={20} />}
-                  title={device.name}
-                  sub={current ? "Used now" : `Used ${lastUsed(device.lastUsedAt)}`}
-                >
-                  {current ? (
-                    <Pill tone="added">This device</Pill>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => open("remove-device", { item: device.id })}
-                      className={`${actionClasses} text-alert hover:opacity-80`}
-                    >
-                      Remove
-                    </button>
-                  )}
-                </Row>
-              </motion.div>
-            );
-          })}
+                {device.thisDevice ? (
+                  <Pill tone="added">This device</Pill>
+                ) : (
+                  <button type="button" onClick={() => open("remove-device", { item: device.id })} className={`${actionClasses} text-alert hover:opacity-80`}>
+                    Remove
+                  </button>
+                )}
+              </Row>
+            </motion.div>
+          ))}
         </AnimatePresence>
       </div>
 
@@ -218,17 +186,13 @@ function DevicesAndAccess({ state }: { state: DashboardState }) {
         <Row icon={<FingerprintIcon size={20} />} title="This device" sub="Face, fingerprint or PIN">
           {ways.thisDevice && <On />}
         </Row>
-        <Row
-          icon={<DeviceGlyph kind="laptop" size={20} />}
-          title="Another device"
-          sub={ways.anotherDevice ? `${plural(others.length, "device", "devices")} can approve` : "Optional"}
-        >
+        <Row icon={<DeviceGlyph kind="laptop" size={20} />} title="Another device" sub={ways.anotherDevice ? `${plural(others.length, "device", "devices")} can approve` : "Optional"}>
           {ways.anotherDevice && <On />}
         </Row>
-        <Row icon={<PeopleIcon size={20} />} title="Your trusted person" sub={helperFirst ? `${helperFirst} can help` : "Optional"}>
+        <Row icon={<PeopleIcon size={20} />} title="Your trusted person" sub={helper ? (helperFirst ? `${helperFirst} can help` : "They can help") : overview.trustedPerson ? "Invited" : "Optional"}>
           {ways.trustedPerson ? (
             <On />
-          ) : (
+          ) : overview.trustedPerson ? null : (
             <Link href="/home/people?sheet=invite" name="security-add-person" className={`${actionClasses} text-ink-deep hover:opacity-80`}>
               Add
             </Link>
@@ -238,19 +202,12 @@ function DevicesAndAccess({ state }: { state: DashboardState }) {
           {ways.backupCode ? (
             <On />
           ) : (
-            <button
-              type="button"
-              onClick={addBackupCode}
-              disabled={adding}
-              aria-busy={adding || undefined}
-              className={`${actionClasses} min-w-8 justify-end text-ink-deep hover:opacity-80`}
-            >
-              {adding ? <Spinner /> : "Add"}
+            <button type="button" onClick={() => open("backup-code")} className={`${actionClasses} min-w-8 justify-end text-ink-deep hover:opacity-80`}>
+              Add
             </button>
           )}
         </Row>
       </div>
-      <FormNote error={error} />
 
       <SectionLabel className="mt-8 mb-1 sm:mt-10">QUESTIONS</SectionLabel>
       <Questions helper={helperFirst} />
@@ -259,7 +216,10 @@ function DevicesAndAccess({ state }: { state: DashboardState }) {
 }
 
 export function SecuritySettingsScreen() {
+  const query = useSecurityOverview();
   return (
-    <Ready skeleton={<SettingsSkeleton title="Devices and access" />}>{(state) => <DevicesAndAccess state={state} />}</Ready>
+    <Ready query={query} skeleton={<SettingsSkeleton title="Devices and access" />}>
+      {(overview) => <DevicesAndAccess overview={overview} />}
+    </Ready>
   );
 }

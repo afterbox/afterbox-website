@@ -1,25 +1,18 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import LookScreen from "@/components/onboarding/LookScreen";
 import AfterHydration from "@/components/ui/onboarding/AfterHydration";
-import { getFlagIds } from "@/lib/onboarding/mock";
 
 export const metadata: Metadata = {
   title: "Worth a look",
 };
 
-export function generateStaticParams() {
-  return getFlagIds().map((flag) => ({ flag }));
-}
-
+/** Flag ids are UUIDs from the API; an unknown one sends the screen back to /found. */
 async function Look({ params }: Pick<PageProps<"/found/look/[flag]">, "params">) {
   const { flag } = await params;
-  const flagId = getFlagIds().find((id) => id === flag);
-  if (!flagId) notFound();
   return (
     <AfterHydration>
-      <LookScreen flagId={flagId} />
+      <LookScreen flagId={flag} />
     </AfterHydration>
   );
 }

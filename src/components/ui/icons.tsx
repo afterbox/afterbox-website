@@ -438,3 +438,12 @@ export function HelpIcon(props: IconProps) {
     </Icon>
   );
 }
+
+export function ReceiptIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6 3h12v18l-2.5-1.6L13 21l-2.5-1.6L8 21l-2-1.4V3z" />
+      <path d="M9 8h6M9 12h6M9 16h3.5" />
+    </Icon>
+  );
+}

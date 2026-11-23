@@ -8,14 +8,12 @@ import BackButton from "@/components/ui/BackButton";
 import BrandMark from "@/components/ui/BrandMark";
 import { HomeIcon, ListIcon, PeopleIcon, PlusIcon } from "@/components/ui/icons";
 import { Link } from "@/components/ui/Links";
-import { acceptDue, loadDelay } from "@/lib/dashboard/api";
-import { boot, dashboardStore, markLoaded, useDashboardState, useLoaded } from "@/lib/dashboard/store";
+import OfflineNotice from "@/components/ui/OfflineNotice";
 import { cssMotionVars, distance, pressable, transition } from "@/lib/motion";
-import { touchThisDevice } from "@/lib/security/device";
-import { syncTrustedPerson } from "@/lib/security/recovery";
-import { accessHref, setUnlock, unlockStore } from "@/lib/security/store";
-import { useSeededAccess } from "@/lib/security/useSeededAccess";
 import { useMotionTokens } from "@/lib/useMotionTokens";
+import { useMe } from "@/store/me";
+import SessionBridge from "@/store/SessionBridge";
+import { useRecordAccess } from "@/store/unlock";
 import { pageCover, useLayerHistory, useLayers } from "./Layer";
 import { Toaster } from "./toast";
 
@@ -37,8 +35,9 @@ const tabs = [
   { section: "people" as const, href: "/home/people", label: "People", Icon: PeopleIcon },
 ];
 
+/** From /v1/me: worked out from the email, so they show while the record (and the name) is sealed. */
 function useInitials() {
-  return useDashboardState()?.account.initials ?? "";
+  return useMe().data?.initials ?? "";
 }
 
 /* Desktop and tablet: the icon rail. From 1024px it widens over the page on hover or focus. */
@@ -265,68 +264,42 @@ function PageFrame({ pathname, children }: { pathname: string; children: ReactNo
   );
 }
 
-/* Boot: ?mock= and ?start=, seeding, the first-load delay, and the mock's invite timer. */
+/* Boot: the layers' history. */
 
 function Boot() {
-  const params = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
-  const loaded = useLoaded();
-
-  useEffect(() => {
-    const used = boot(params);
-    if (used.length > 0) {
-      const next = new URLSearchParams(params.toString());
-      used.forEach((key) => next.delete(key));
-      const query = next.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    }
-  }, [params, pathname, router]);
-
-  useEffect(() => {
-    if (loaded) return;
-    let cancelled = false;
-    loadDelay().then(() => {
-      if (!cancelled) markLoaded();
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [loaded]);
-
-  useEffect(() => {
-    const interval = setInterval(() => acceptDue(), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   useLayerHistory();
   return null;
 }
 
 /**
- * Before any /home page: no passkey yet goes to /secure, and a browser without the member part (or a
- * session that hasn't unlocked) to /unlock. Nothing of the dashboard shows on the way.
+ * Before any /home page: signed out → /login (the session bridge); no keys yet → /start (onboarding resumes there);
+ * a browser without this member's device blob, or a session the record isn't open on → /unlock. Nothing of the
+ * dashboard shows on the way.
  */
 function useGate() {
-  const access = useSeededAccess(boot);
+  const me = useMe();
+  const access = useRecordAccess(me.data);
   const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
 
   useEffect(() => {
-    if (access === "pending") return;
-    if (access !== "open") {
-      router.replace(accessHref[access]);
+    if (access === "loading" || access === "open") return;
+    if (access === "secure") {
+      router.replace("/start");
       return;
     }
-    if (unlockStore.get().status === "in") setUnlock("open");
-    touchThisDevice();
-  }, [access, router]);
-
-  useEffect(() => {
-    syncTrustedPerson();
-    return dashboardStore.subscribe(syncTrustedPerson);
-  }, []);
+    const query = params.toString();
+    router.replace(`/unlock?next=${encodeURIComponent(query ? `${pathname}?${query}` : pathname)}`);
+  }, [access, params, pathname, router]);
 
   return access === "open";
+}
+
+function Gate({ onAllowed }: { onAllowed: (allowed: boolean) => void }) {
+  const allowed = useGate();
+  useEffect(() => onAllowed(allowed), [allowed, onAllowed]);
+  return null;
 }
 
 /**
@@ -335,11 +308,13 @@ function useGate() {
  */
 export default function DashboardShell({ overlays, children }: { overlays: ReactNode; children: ReactNode }) {
   const pathname = usePathname();
-  const allowed = useGate();
+  const [allowed, setAllowed] = useState(false);
   return (
     <MotionConfig reducedMotion="user" transition={transition("base")}>
       <div style={cssMotionVars} className="leading-[normal]">
+        <SessionBridge />
         <Suspense>
+          <Gate onAllowed={setAllowed} />
           <Boot />
         </Suspense>
         {allowed && (
@@ -351,6 +326,7 @@ export default function DashboardShell({ overlays, children }: { overlays: React
             </PageFrame>
             <Suspense>{overlays}</Suspense>
             <Toaster />
+            <OfflineNotice />
           </>
         )}
       </div>

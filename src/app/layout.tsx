@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Host_Grotesk } from "next/font/google";
+import { headers } from "next/headers";
+import Analytics from "@/components/Analytics";
+import QueryProvider from "@/store/QueryProvider";
 import { siteDescription, siteName, siteTitle, siteUrl } from "@/content/site";
 import "./globals.css";
 
@@ -63,10 +66,20 @@ export const viewport: Viewport = {
   themeColor: "#1c2c50",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+/**
+ * Reading the request headers renders every page per request, so the proxy's CSP nonce reaches every script Next
+ * writes (it reads the nonce from the Content-Security-Policy request header).
+ */
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  await headers();
   return (
     <html lang="en-GB" className={`${hostGrotesk.variable} h-full antialiased`}>
-      <body className="min-h-full bg-ground text-ink">{children}</body>
+      <body className="min-h-full bg-ground text-ink">
+        <QueryProvider>
+          {children}
+          <Analytics />
+        </QueryProvider>
+      </body>
     </html>
   );
 }

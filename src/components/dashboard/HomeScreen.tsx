@@ -10,14 +10,17 @@ import { useLayers } from "@/components/ui/dashboard/Layer";
 import Page from "@/components/ui/dashboard/Page";
 import Ready from "@/components/ui/dashboard/Ready";
 import { HomeSkeleton } from "@/components/ui/dashboard/Skeleton";
-import { getHome } from "@/lib/dashboard/api";
+import type { Home, HomeBank } from "@/lib/api/types";
 import { formatList, timeAgo } from "@/lib/dashboard/format";
-import type { DashboardState } from "@/lib/dashboard/mock";
 import { distance, duration, stagger, transition } from "@/lib/motion";
 import { useMotionTokens } from "@/lib/useMotionTokens";
+import { canMarkSeen, useMarkEventSeen } from "@/store/activity";
+import { useStartScan } from "@/store/documents";
+import { useHome } from "@/store/home";
 
-function SafeLine({ banks }: { banks: DashboardState["banks"] }) {
-  const latest = banks.reduce((newest, bank) => Math.max(newest, bank.checkedAt), 0);
+/** "Checked with Monzo and HSBC 2 hours ago", from Home's own `banks` (no extra request). */
+function SafeLine({ banks }: { banks: HomeBank[] }) {
+  const latest = banks.reduce((newest, bank) => Math.max(newest, bank.checkedAt ? Date.parse(bank.checkedAt) : 0), 0);
   const ago = latest ? timeAgo(latest) : null;
   const names = formatList(banks.map((bank) => bank.name));
   const icon = <LockIcon size={14} className="flex-none text-positive" />;
@@ -36,23 +39,30 @@ function SafeLine({ banks }: { banks: DashboardState["banks"] }) {
   );
 }
 
-function Home({ state }: { state: DashboardState }) {
-  const home = getHome(state);
+function HomeView({ home }: { home: Home }) {
   const { open } = useLayers();
   const { move } = useMotionTokens();
+  const markSeen = useMarkEventSeen();
   const documentFor = useRef<string | null>(null);
-  const picker = useDocumentPicker(() => {
-    if (documentFor.current) open("scan", { item: documentFor.current });
+  const startScan = useStartScan();
+  const picker = useDocumentPicker((file) => {
+    if (!documentFor.current) return;
+    startScan(file, documentFor.current);
+    open("scan", { item: documentFor.current });
   });
 
-  const hasBanner = home.finds.length > 0;
+  const hasBanner = home.newFinds.count > 0;
+  // "What's new" when there's any, else "Coming up".
+  const newsFirst = home.whatsNew.length > 0;
+  const events = newsFirst ? home.whatsNew : home.comingUp;
+  const eventsTitle = newsFirst ? "What’s new" : "Coming up";
   const tilesDone = duration.slow + home.categories.length * stagger.base;
   const after = (step: number) => ({
     initial: { opacity: 0, y: move(distance.rise) },
     animate: { opacity: 1, y: 0 },
     transition: transition("base", tilesDone + step * stagger.base),
   });
-  const newsFirst = home.eventsTitle !== "Coming up";
+  const saved = home.savedSoFar?.yearly.filter((money) => money.minor > 0) ?? [];
 
   return (
     <Page width="wide">
@@ -62,7 +72,7 @@ function Home({ state }: { state: DashboardState }) {
           <div className="order-1 flex items-end justify-between gap-4">
             <div className="min-w-0">
               <h1 tabIndex={-1} className="flex flex-wrap items-baseline gap-x-3 text-ink outline-none">
-                <span className="text-[52px]/none tracking-[-0.045em] tabular-nums sm:text-[64px]/none">
+                <span className="text-[52px]/none tracking-[-0.045em] tabular-nums sm:text-[64px]/none" data-testid="home-count">
                   <AnimatedNumber value={home.count} from={0} speed="slow" />
                 </span>
                 <span className="text-[17px] sm:text-[20px]">in your record</span>
@@ -77,8 +87,13 @@ function Home({ state }: { state: DashboardState }) {
 
           {hasBanner && (
             <motion.div {...after(0)} className="order-2 mt-6 sm:mt-8">
-              <FindsBanner finds={home.finds} onReview={() => open("review")} />
+              <FindsBanner count={home.newFinds.count} line={home.newFinds.line} onReview={() => open("review")} />
             </motion.div>
+          )}
+          {home.waiting > 0 && (
+            <motion.p {...after(0)} className={`order-2 text-[13px] text-ink-soft ${hasBanner ? "mt-2.5" : "mt-6"}`}>
+              {home.waiting} more waiting. Your plan has room for what’s in your record now.
+            </motion.p>
           )}
 
           {home.categories.length > 0 && (
@@ -94,10 +109,10 @@ function Home({ state }: { state: DashboardState }) {
         </div>
 
         <div className="contents lg:block">
-          {home.tasks.length > 0 && (
+          {home.nextUp.length > 0 && (
             <motion.div {...after(1)} className={`order-3 ${hasBanner ? "mt-4 sm:mt-8" : "mt-7 sm:mt-8"} lg:mt-0`}>
               <NextUp
-                tasks={home.tasks}
+                tasks={home.nextUp}
                 onChoose={() => open("invite")}
                 onDocument={(item) => {
                   documentFor.current = item.id;
@@ -107,20 +122,27 @@ function Home({ state }: { state: DashboardState }) {
             </motion.div>
           )}
 
-          {home.events.length > 0 && (
+          {events.length > 0 && (
             <motion.div
               {...after(2)}
               className={`${newsFirst ? "order-4" : "order-6 sm:order-4"} ${newsFirst ? "mt-7" : "mt-9 sm:mt-10"} sm:mt-10 ${
-                home.tasks[0]?.kind === "person" ? "lg:mt-8" : "lg:mt-10"
+                home.nextUp[0]?.kind === "person" ? "lg:mt-8" : "lg:mt-10"
               }`}
             >
-              <Events events={home.events} title={home.eventsTitle} delay={tilesDone + 2 * stagger.base} />
+              <Events
+                events={events}
+                title={eventsTitle}
+                delay={tilesDone + 2 * stagger.base}
+                onOpen={(event) => {
+                  if (!event.upcoming && canMarkSeen(event.id)) markSeen.mutate(event.id);
+                }}
+              />
             </motion.div>
           )}
 
-          {home.savedYearly > 0 && (
+          {saved.length > 0 && (
             <motion.div {...after(3)} className="mt-8 max-lg:hidden">
-              <SavedSoFar yearly={home.savedYearly} />
+              <SavedSoFar yearly={saved} />
             </motion.div>
           )}
         </div>
@@ -130,5 +152,10 @@ function Home({ state }: { state: DashboardState }) {
 }
 
 export default function HomeScreen() {
-  return <Ready skeleton={<HomeSkeleton />}>{(state) => <Home state={state} />}</Ready>;
+  const query = useHome();
+  return (
+    <Ready query={query} skeleton={<HomeSkeleton />}>
+      {(home) => <HomeView home={home} />}
+    </Ready>
+  );
 }

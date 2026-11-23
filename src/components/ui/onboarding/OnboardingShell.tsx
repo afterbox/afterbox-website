@@ -17,15 +17,15 @@ import {
   type ReactNode,
 } from "react";
 import BackButton from "@/components/ui/BackButton";
-import { OnboardingProvider, useHydrated, useOnboarding, type OnboardingState } from "@/lib/onboarding/store";
+import { useHydrated } from "@/lib/useHydrated";
+import SessionBridge from "@/store/SessionBridge";
 import { cssMotionVars, distance, FLOW_CARD, transition } from "@/lib/motion";
 import { useMotionTokens } from "@/lib/useMotionTokens";
 
 type HeaderSetup = { step: 1 | 2 | 3; backHref: string | null };
 
-/** Which progress step each screen is on, and where Back falls back to (null hides it). */
-function headerFor(pathname: string, another: boolean, state: OnboardingState): HeaderSetup {
-  const connectingAnother = state.pending?.another ?? false;
+/** Which progress step each screen is on, and where Back falls back to (null hides it). From the URL alone. */
+function headerFor(pathname: string, another: boolean): HeaderSetup {
   const [, section, page, flag, cancel] = pathname.split("/");
 
   if (section === "connect") {
@@ -35,13 +35,13 @@ function headerFor(pathname: string, another: boolean, state: OnboardingState): 
       case "bank":
         return another ? { step: 3, backHref: "/found" } : { step: 1, backHref: "/connect" };
       case "reading":
-        return { step: state.banks.length > 1 ? 3 : 2, backHref: null };
+        return { step: another ? 3 : 2, backHref: null };
       case "cancelled":
-        return { step: connectingAnother ? 3 : 1, backHref: connectingAnother ? "/connect/bank?another=1" : "/connect/bank" };
+        return { step: another ? 3 : 1, backHref: another ? "/connect/bank?another=1" : "/connect/bank" };
       case "thin":
         return { step: 3, backHref: null };
       default:
-        return { step: connectingAnother ? 3 : 1, backHref: null };
+        return { step: another ? 3 : 1, backHref: null };
     }
   }
   if (section === "found") {
@@ -120,8 +120,7 @@ function HeaderFrame({ setup }: { setup: HeaderSetup | null }) {
 function Header() {
   const pathname = usePathname();
   const another = useSearchParams().get("another") === "1";
-  const { state } = useOnboarding();
-  return <HeaderFrame setup={useHydrated() ? headerFor(pathname, another, state) : null} />;
+  return <HeaderFrame setup={useHydrated() ? headerFor(pathname, another) : null} />;
 }
 
 const DESKTOP = "(min-width: 640px)";
@@ -293,20 +292,19 @@ function Stage({ ready, children }: { ready: boolean; children: ReactNode }) {
 /**
  * Mobile: full screen, progress centred, Back on the left. From 640px: wordmark on the left,
  * Back on the right, and each screen sits in the card.
- * The state lives in sessionStorage, so screens render nothing until it has loaded (AfterHydration)
- * and the card stays transparent until then; then the first screen comes in like any other.
+ * Screens render once hydrated (AfterHydration) and the card stays transparent until then; then the first
+ * screen comes in like any other. Signed out, the session bridge sends people to /login.
  */
 export default function OnboardingShell({ children }: { children: ReactNode }) {
   const hydrated = useHydrated();
   return (
     <MotionConfig reducedMotion="user" transition={transition("base")}>
       <div className="flex min-h-dvh flex-col leading-[normal]" style={cssMotionVars}>
-        <OnboardingProvider>
-          <Suspense fallback={<HeaderFrame setup={null} />}>
-            <Header />
-          </Suspense>
-          <Stage ready={hydrated}>{children}</Stage>
-        </OnboardingProvider>
+        <SessionBridge />
+        <Suspense fallback={<HeaderFrame setup={null} />}>
+          <Header />
+        </Suspense>
+        <Stage ready={hydrated}>{children}</Stage>
       </div>
     </MotionConfig>
   );

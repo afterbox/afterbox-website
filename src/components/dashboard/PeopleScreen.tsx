@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import FormMessage from "@/components/ui/FormMessage";
-import { CheckIcon, EyeIcon, MailIcon, MoreIcon, PeopleIcon, PersonAddIcon } from "@/components/ui/icons";
+import { CheckIcon, EyeIcon, MailIcon, MoreIcon, PeopleIcon, PersonAddIcon, TrashIcon } from "@/components/ui/icons";
 import Monogram from "@/components/ui/onboarding/Monogram";
 import Spinner from "@/components/ui/Spinner";
 import { Lead, PageTitle, Pill, Square } from "@/components/ui/dashboard/bits";
@@ -14,9 +14,11 @@ import Ready from "@/components/ui/dashboard/Ready";
 import { PeopleSkeleton } from "@/components/ui/dashboard/Skeleton";
 import { showToast } from "@/components/ui/dashboard/toast";
 import { useMobile } from "@/components/ui/dashboard/useMedia";
-import { getPeople, resendInvite } from "@/lib/dashboard/api";
-import type { DashboardState, Person } from "@/lib/dashboard/mock";
+import { anyErrorCopy } from "@/lib/api/errors";
+import type { PeopleList, Person } from "@/lib/api/types";
 import { pressable, transition } from "@/lib/motion";
+import { PASSKEY_ERROR, PasskeyError } from "@/lib/security/keychain";
+import { usePeople, useRemovePerson, useResendInvite } from "@/store/people";
 import { useMotionTokens } from "@/lib/useMotionTokens";
 
 const initials = (name: string) =>
@@ -82,8 +84,12 @@ function PersonRow({ person }: { person: Person }) {
   const mobile = useMobile();
   const { open } = useLayers();
   const [menu, setMenu] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
+  const resendInvite = useResendInvite();
+  const removePerson = useRemovePerson();
+  const sending = resendInvite.isPending || removePerson.isPending;
+  const failed = resendInvite.error ?? removePerson.error;
+  const error = failed ? (failed instanceof PasskeyError ? PASSKEY_ERROR : anyErrorCopy(failed)) : null;
   const moreRef = useRef<HTMLButtonElement>(null);
   const first = person.name.split(" ")[0];
   const invited = person.status === "invited";
@@ -93,18 +99,20 @@ function PersonRow({ person }: { person: Person }) {
     if (!mobile) moreRef.current?.focus();
   };
 
-  async function resend() {
+  function resend() {
     setMenu(false);
-    setSending(true);
-    setError(null);
-    try {
-      await resendInvite(person.id);
-      showToast(`Invite sent again to ${first}`);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
-    } finally {
-      setSending(false);
-    }
+    resendInvite.mutate(person.id, {
+      onSuccess: () => {
+        setResent(true);
+        showToast(`Invite sent again to ${first}`);
+      },
+    });
+  }
+
+  /** Remove (S: the passkey is asked for). */
+  function remove() {
+    setMenu(false);
+    removePerson.mutate(person.id, { onSuccess: () => showToast(`${first} removed`) });
   }
 
   function change() {
@@ -144,7 +152,7 @@ function PersonRow({ person }: { person: Person }) {
                 {menu && (
                   <MenuPopover onClose={closeMenu}>
                     {invited &&
-                      (person.resent ? (
+                      (resent ? (
                         <button type="button" role="menuitem" disabled className={`${menuItem} text-positive`}>
                           <CheckIcon size={17} strokeWidth={2.4} />
                           Sent again
@@ -158,6 +166,10 @@ function PersonRow({ person }: { person: Person }) {
                     <button type="button" role="menuitem" onClick={change} className={menuItem}>
                       <PersonAddIcon size={17} className="text-ink-soft" />
                       Change trusted person
+                    </button>
+                    <button type="button" role="menuitem" onClick={remove} className={`${menuItem} text-alert`}>
+                      <TrashIcon size={17} />
+                      Remove {first}
                     </button>
                   </MenuPopover>
                 )}
@@ -188,9 +200,13 @@ function PersonRow({ person }: { person: Person }) {
               Resend invite
             </button>
           )}
-          <button type="button" onClick={change} className={sheetItem}>
+          <button type="button" onClick={change} className={`${sheetItem} border-b border-line`}>
             <PersonAddIcon size={20} className="text-ink-soft" />
             Change trusted person
+          </button>
+          <button type="button" onClick={remove} className={`${sheetItem} text-alert`}>
+            <TrashIcon size={20} />
+            Remove {first}
           </button>
         </PhoneSheet>
       )}
@@ -198,8 +214,9 @@ function PersonRow({ person }: { person: Person }) {
   );
 }
 
-function People({ state }: { state: DashboardState }) {
-  const people = getPeople(state);
+function People({ list }: { list: PeopleList }) {
+  // Trusted people here; a Family owner's family invitations belong to the family screen (billing work).
+  const people = list.people.filter((person) => person.role === "trusted");
   const { open } = useLayers();
 
   return (
@@ -240,5 +257,10 @@ function People({ state }: { state: DashboardState }) {
 }
 
 export default function PeopleScreen() {
-  return <Ready skeleton={<PeopleSkeleton />}>{(state) => <People state={state} />}</Ready>;
+  const query = usePeople();
+  return (
+    <Ready query={query} skeleton={<PeopleSkeleton />}>
+      {(list) => <People list={list} />}
+    </Ready>
+  );
 }

@@ -7,15 +7,12 @@ import { Suspense, use, useEffect, useLayoutEffect, useRef, useState, type React
 import { ChevronLeftIcon } from "@/components/ui/icons";
 import { pageCover, useLayerHistory } from "@/components/ui/dashboard/Layer";
 import { Toaster } from "@/components/ui/dashboard/toast";
-import { mockAccount } from "@/lib/dashboard/mock";
-import { dashboardStore, mockFlags } from "@/lib/dashboard/store";
+import { safeNext } from "@/components/security/SecureScreen";
 import { cssMotionVars, distance, pressable, transition } from "@/lib/motion";
-import { settlePending } from "@/lib/security/device";
-import { bootSecurity, freshMock } from "@/lib/security/recovery";
-import { accessHref, useAccess, useUnlock } from "@/lib/security/store";
-import { useSeededAccess } from "@/lib/security/useSeededAccess";
 import { useMotionTokens } from "@/lib/useMotionTokens";
-import YoureIn from "@/components/security/YoureIn";
+import { useMe } from "@/store/me";
+import SessionBridge from "@/store/SessionBridge";
+import { useRecordAccess } from "@/store/unlock";
 
 /** Phones: which screens have a back chevron (06, 09, 10, 13), and where it falls back to. */
 function backFor(pathname: string, params: URLSearchParams) {
@@ -26,7 +23,7 @@ function backFor(pathname: string, params: URLSearchParams) {
 }
 
 function Initials() {
-  const initials = dashboardStore.useValue()?.account.initials ?? mockAccount().initials;
+  const initials = useMe().data?.initials ?? "";
   return (
     <span aria-hidden="true" className="flex size-10 items-center justify-center rounded-full bg-mist text-[13px] font-semibold text-ink-deep">
       {initials}
@@ -88,42 +85,25 @@ function FocusTitle({ children }: { children: ReactNode }) {
   return <div ref={ref}>{children}</div>;
 }
 
-function seedMock(params: URLSearchParams) {
-  if (!freshMock(params)) return;
-  const tokens = (params.get("mock") ?? "").split(",").map((token) => token.trim());
-  mockFlags.set(() => ({ slow: tokens.includes("slow"), fail: tokens.includes("fail") }));
-  bootSecurity(params);
-}
-
-/** Applies `?mock=` on later navigations, sends people where they belong, and completes approvals once due. */
+/** Sends people where they belong: no keys yet → /secure; the record already open on /unlock → on to it. */
 function Boot() {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const access = useAccess();
-  const { status } = useUnlock();
+  const me = useMe();
+  const access = useRecordAccess(pathname.startsWith("/unlock") ? me.data : undefined);
   const unlocking = pathname.startsWith("/unlock");
+  // Screens on /unlock finish their own way in (08, help); only a plain visit moves on by itself.
+  const busy = params.has("wait") || params.has("request") || pathname === "/unlock/code";
 
   useEffect(() => {
-    seedMock(params);
-    if (!params.has("mock")) return;
-    const next = new URLSearchParams(params.toString());
-    next.delete("mock");
-    const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [params, pathname, router]);
+    if (!unlocking || !me.data || busy) return;
+    if (!me.data.keysReady) router.replace("/secure");
+    else if (access === "open") router.replace(safeNext(params.get("next")));
+  }, [access, busy, me.data, params, router, unlocking]);
 
   useEffect(() => {
-    if (!unlocking || access === "pending" || params.has("mock")) return;
-    if (access === "secure") router.replace(accessHref.secure);
-    else if (access === "open" && status === "open") router.replace(accessHref.open);
-  }, [unlocking, access, status, params, router]);
-
-  useEffect(() => {
-    if (!unlocking) return;
-    router.prefetch("/home");
-    const interval = setInterval(() => settlePending(), 500);
-    return () => clearInterval(interval);
+    if (unlocking) router.prefetch("/home");
   }, [unlocking, router]);
 
   useLayerHistory();
@@ -156,30 +136,27 @@ function Stage({ id, children }: { id: string; children: ReactNode }) {
  */
 export default function SecurityShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const access = useSeededAccess(seedMock);
-  const { status } = useUnlock();
+  const me = useMe();
   const scale = useTransform(pageCover, [0, 1], [1, 0.93]);
   const radius = useTransform(pageCover, [0, 1], [0, 24]);
   const y = useTransform(pageCover, [0, 1], [0, 10]);
   const wide = pathname === "/secure";
-  const youreIn = pathname.startsWith("/unlock") && status === "in";
 
   return (
     <MotionConfig reducedMotion="user" transition={transition("base")}>
       <div style={cssMotionVars} className="leading-[normal]">
         <div aria-hidden="true" className="fixed inset-0 bg-night sm:hidden" />
+        <SessionBridge />
         <Suspense>
           <Boot />
         </Suspense>
         <motion.div style={{ scale, y, borderRadius: radius }} className="relative flex min-h-dvh flex-col overflow-hidden bg-ground">
-          <Header hideBack={youreIn} />
+          <Header hideBack={false} />
           <main className="flex flex-1 flex-col px-6 pb-[calc(52px+env(safe-area-inset-bottom))] max-sm:justify-center sm:items-center sm:justify-center sm:pt-2 sm:pb-16">
             <div
               className={`w-full max-w-full py-6 sm:rounded-card sm:bg-card sm:px-14 sm:pt-14 sm:pb-12 sm:shadow-card ${wide ? "sm:w-[560px]" : "sm:w-[520px]"}`}
             >
-              {access !== "pending" && (
-                <Stage id={youreIn ? "in" : pathname}>{youreIn ? <YoureIn /> : children}</Stage>
-              )}
+              {me.data && <Stage id={pathname}>{children}</Stage>}
             </div>
           </main>
         </motion.div>
