@@ -1,25 +1,18 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import CancelGuideScreen from "@/components/onboarding/CancelGuideScreen";
 import AfterHydration from "@/components/ui/onboarding/AfterHydration";
-import { getCancelGuideRoutes } from "@/lib/onboarding/mock";
 
 export const metadata: Metadata = {
   title: "How to cancel",
 };
 
-export function generateStaticParams() {
-  return getCancelGuideRoutes();
-}
-
+/** `/found/look/<flag id>/cancel/<find id>`: the guide comes from the find's `guide` key. */
 async function CancelGuide({ params }: Pick<PageProps<"/found/look/[flag]/cancel/[merchant]">, "params">) {
   const { flag, merchant } = await params;
-  const route = getCancelGuideRoutes().find((known) => known.flag === flag && known.merchant === merchant);
-  if (!route) notFound();
   return (
     <AfterHydration>
-      <CancelGuideScreen flagId={route.flag} merchant={route.merchant} />
+      <CancelGuideScreen flagId={flag} findingId={merchant} />
     </AfterHydration>
   );
 }

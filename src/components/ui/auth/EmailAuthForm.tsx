@@ -1,31 +1,23 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Link } from "@/components/ui/Links";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import {
-  authHref,
-  continueWithGoogle,
-  DEMO_EMAIL,
-  isOffline,
-  isValidEmail,
-  sendCode,
-  verifyHref,
-  type AuthMode,
-  type Demo,
-} from "@/lib/mock-auth";
-import { FLOW_CARD, transition } from "@/lib/motion";
 import BrandMark from "@/components/ui/BrandMark";
 import Button from "@/components/ui/Button";
 import FormMessage from "@/components/ui/FormMessage";
 import { MailIcon } from "@/components/ui/icons";
+import { Link } from "@/components/ui/Links";
 import TextField from "@/components/ui/TextField";
+import { rememberAfterSignIn, withNext } from "@/lib/afterSignIn";
+import { errorCopy, hasCode } from "@/lib/api/errors";
+import { authHref, isOffline, isValidEmail, verifyHref, type AuthMode } from "@/lib/auth";
+import { transition } from "@/lib/motion";
+import { googleStartUrl, useStartEmail } from "@/store/auth";
 import AuthCard from "./AuthCard";
 import AuthTitle from "./AuthTitle";
 import GoogleButton from "./GoogleButton";
 import OrDivider from "./OrDivider";
-import { onboardingHref, useHandOff } from "./useHandOff";
 
 const copy = {
   signup: {
@@ -44,108 +36,104 @@ const copy = {
 
 const messages = {
   invalid: "Enter a full email address.",
-  noAccount: "No account found.",
   googleFailed: "Google didn't connect. Try again.",
   offline: "You're offline.",
 };
 
-type Status = "idle" | "sending" | "google";
-type Problem = "invalid" | "noAccount" | "googleFailed" | "offline" | null;
+type Problem = { kind: "invalid" | "googleFailed" | "offline" } | { kind: "api"; message: string } | null;
 
 type EmailAuthFormProps = {
   mode: AuthMode;
   initialEmail?: string | null;
-  demo?: Demo | null;
+  /** /login?error=google: the backend's redirect after any Google failure. */
+  googleFailed?: boolean;
+  /** A page to come back to after signing in (a help request or approval link opened signed out). */
+  next?: string | null;
 };
 
-/** The email step shared by /signup and /login: Google, or an email that gets a code. */
-export default function EmailAuthForm({ mode, initialEmail, demo = null }: EmailAuthFormProps) {
+/**
+ * The email step shared by /signup and /login: Google (a full-page redirect through the API), or an email that
+ * gets a code. `email/start` always answers "sent", so there's no "no account" state: people without one get an
+ * email inviting them to sign up.
+ */
+export default function EmailAuthForm({ mode, initialEmail, googleFailed = false, next = null }: EmailAuthFormProps) {
   const router = useRouter();
   const text = copy[mode];
-  const [email, setEmail] = useState(initialEmail ?? DEMO_EMAIL);
-  const [status, setStatus] = useState<Status>("idle");
-  const [problem, setProblem] = useState<Problem>(
-    demo === "google-fail" ? "googleFailed" : demo === "offline" ? "offline" : null,
-  );
-  const [handOff, setHandOff] = useState<string | null>(null);
-  const contentLeaving = useHandOff(handOff);
-  const busy = useRef(false);
+  const [email, setEmail] = useState(initialEmail ?? "");
+  const [problem, setProblem] = useState<Problem>(googleFailed ? { kind: "googleFailed" } : null);
+  const [google, setGoogle] = useState(false);
+  const start = useStartEmail();
   const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    router.prefetch(verifyHref(mode, DEMO_EMAIL));
-  }, [mode, router]);
+    router.prefetch("/verify");
+  }, [router]);
 
   // Next keeps a visited page alive but hidden; coming back should find the form ready, not mid-send.
   useEffect(
     () => () => {
-      busy.current = false;
-      setHandOff(null);
-      setStatus((current) => (current === "sending" || current === "google" ? "idle" : current));
+      setGoogle(false);
     },
     [],
   );
 
-  const isBusy = status === "sending" || status === "google";
-  const fieldError = problem === "invalid" || problem === "noAccount" ? messages[problem] : null;
+  const sending = start.isPending;
+  const isBusy = sending || google;
 
-  async function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (busy.current || !email.trim()) return;
+    if (isBusy || !email.trim()) return;
     if (!isValidEmail(email)) {
-      setProblem("invalid");
+      setProblem({ kind: "invalid" });
       emailRef.current?.focus();
       return;
     }
     if (isOffline()) {
-      setProblem("offline");
+      setProblem({ kind: "offline" });
       return;
     }
-    busy.current = true;
     setProblem(null);
-    setStatus("sending");
-    const result = await sendCode(mode, email);
-    if (result === "no-account") {
-      busy.current = false;
-      setStatus("idle");
-      setProblem("noAccount");
-      emailRef.current?.focus();
-      return;
-    }
-    // Going back from /verify should find the email still filled in.
-    window.history.replaceState(null, "", authHref(mode, email));
-    router.push(verifyHref(mode, email));
+    start.mutate(
+      { email, mode },
+      {
+        onSuccess: () => {
+          // Going back from /verify should find the email still filled in.
+          window.history.replaceState(null, "", withNext(authHref(mode, email.trim()), next));
+          router.push(withNext(verifyHref(mode, email), next));
+        },
+        onError: (error) => {
+          if (hasCode(error, "NETWORK")) setProblem({ kind: "offline" });
+          else setProblem({ kind: "api", message: errorCopy(error) });
+        },
+      },
+    );
   }
 
-  async function handleGoogle() {
-    if (busy.current) return;
+  function handleGoogle() {
+    if (isBusy) return;
     if (isOffline()) {
-      setProblem("offline");
+      setProblem({ kind: "offline" });
       return;
     }
-    busy.current = true;
     setProblem(null);
-    setStatus("google");
-    const result = await continueWithGoogle(mode, demo);
-    if (result === "failed") {
-      busy.current = false;
-      setStatus("idle");
-      setProblem("googleFailed");
-      return;
-    }
-    setHandOff(onboardingHref(result));
+    setGoogle(true);
+    // Google comes back to /home or /start, without our query: the page to return to waits in this tab.
+    if (next) rememberAfterSignIn(next);
+    window.location.assign(googleStartUrl(mode));
   }
+
+  const fieldError = problem?.kind === "invalid" ? messages.invalid : null;
+  const formMessage = problem?.kind === "api" ? problem.message : problem?.kind === "offline" ? messages.offline : null;
 
   return (
-    // Only once handing over: sharing it earlier would morph this card into the code screen's.
-    <AuthCard layoutId={handOff ? FLOW_CARD : undefined}>
-      <motion.div initial={false} animate={{ opacity: contentLeaving ? 0 : 1 }} transition={transition("fast")}>
+    <AuthCard>
+      <motion.div initial={false} animate={{ opacity: 1 }} transition={transition("fast")}>
         <form noValidate onSubmit={handleSubmit}>
           <BrandMark />
           <AuthTitle title={text.title} />
 
-          <GoogleButton loading={status === "google"} disabled={status === "sending"} onClick={handleGoogle} />
-          <FormMessage message={problem === "googleFailed" ? messages.googleFailed : null} />
+          <GoogleButton loading={google} disabled={sending} onClick={handleGoogle} />
+          <FormMessage message={problem?.kind === "googleFailed" ? messages.googleFailed : null} />
 
           <OrDivider />
 
@@ -163,12 +151,9 @@ export default function EmailAuthForm({ mode, initialEmail, demo = null }: Email
             value={email}
             disabled={isBusy}
             error={fieldError}
-            errorLink={
-              problem === "noAccount" ? { href: authHref("signup", email), label: "Start your record" } : undefined
-            }
             onChange={(event) => {
               setEmail(event.target.value);
-              if (problem !== "googleFailed") setProblem(null);
+              if (problem?.kind !== "googleFailed") setProblem(null);
             }}
           />
 
@@ -177,22 +162,22 @@ export default function EmailAuthForm({ mode, initialEmail, demo = null }: Email
             variant="inkDeep"
             size="block"
             className="mt-4 sm:mt-3.5"
-            loading={status === "sending"}
+            loading={sending}
             loadingLabel="Sending code"
-            disabled={!email.trim() || status === "google"}
+            disabled={!email.trim() || google}
           >
             Continue
           </Button>
           <FormMessage
-            message={problem === "offline" ? messages.offline : null}
-            icon="wifiOff"
+            message={formMessage}
+            icon={problem?.kind === "offline" ? "wifiOff" : problem?.kind === "api" ? "clock" : "alert"}
             gapClassName="pt-3"
           />
 
           <p className="mt-8 text-center text-[13px] text-ink-soft sm:mt-[22px] sm:text-sm">
             {text.prompt}{" "}
             <Link
-              href={authHref(text.switchTo, email)}
+              href={withNext(authHref(text.switchTo, email.trim()), next)}
               name={`auth-switch-${text.switchTo}`}
               className="font-semibold text-ink-deep underline underline-offset-3"
             >

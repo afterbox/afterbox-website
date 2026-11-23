@@ -1,15 +1,8 @@
 import { formatMonth } from "@/lib/onboarding/format";
+import { currencySymbol, minorDigits } from "@/lib/money";
 
-const pounds = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
-const wholePounds = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 });
 const longDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const list = new Intl.ListFormat("en-GB", { type: "conjunction" });
-
-/** 12345 pence to "£123.45". */
-export const formatPence = (pence: number) => pounds.format(pence / 100);
-
-/** Values: "£180,000", or "£180,000.50" when there are pence. */
-export const formatValue = (pence: number) => (pence % 100 === 0 ? wholePounds : pounds).format(pence / 100);
 
 export const formatList = (items: string[]) => list.format(items);
 
@@ -61,15 +54,15 @@ export function daysUntil(timestamp: number, now = Date.now()) {
 
 export const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
-/* Typing money: "£" plus thousands separators as you type, pence kept separately. */
+/* Typing money: the currency's own symbol (Intl) plus thousands separators as you type, minor units kept apart. */
 
-/** Digits and at most one point with two decimals, from whatever was typed or pasted. */
-function cleanMoney(raw: string) {
+/** Digits and at most one point with the currency's decimals, from whatever was typed or pasted. */
+function cleanMoney(raw: string, digits: number) {
   const kept = raw.replace(/[^\d.]/g, "");
-  const point = kept.indexOf(".");
-  const whole = (point === -1 ? kept : kept.slice(0, point)).replace(/^0+(?=\d)/, "").slice(0, 10);
-  const pence = point === -1 ? null : kept.slice(point + 1).replace(/\./g, "").slice(0, 2);
-  return { whole, pence };
+  const point = digits === 0 ? -1 : kept.indexOf(".");
+  const whole = (point === -1 ? kept.replace(/\./g, "") : kept.slice(0, point)).replace(/^0+(?=\d)/, "").slice(0, 10);
+  const fraction = point === -1 ? null : kept.slice(point + 1).replace(/\./g, "").slice(0, digits);
+  return { whole, fraction };
 }
 
 function groupThousands(whole: string) {
@@ -80,32 +73,36 @@ function groupThousands(whole: string) {
  * Re-formats what's in the field and puts the caret back after the same number of digits
  * (and the point), so typing in the middle of "£180,000" doesn't throw it to the end.
  */
-export function formatMoneyTyping(raw: string, caret: number) {
-  const { whole, pence } = cleanMoney(raw);
-  if (!whole && pence === null) return { text: "", caret: 0 };
-  const text = `£${groupThousands(whole || (pence !== null ? "0" : ""))}${pence !== null ? `.${pence}` : ""}`;
+export function formatMoneyTyping(raw: string, caret: number, currency: string) {
+  const symbol = currencySymbol(currency);
+  const { whole, fraction } = cleanMoney(raw, minorDigits(currency));
+  if (!whole && fraction === null) return { text: "", caret: 0 };
+  const text = `${symbol}${groupThousands(whole || (fraction !== null ? "0" : ""))}${fraction !== null ? `.${fraction}` : ""}`;
   const significant = raw.slice(0, caret).replace(/[^\d.]/g, "").length;
   let seen = 0;
-  let position = 1;
+  let position = symbol.length;
   while (position < text.length && seen < significant) {
     if (/[\d.]/.test(text[position])) seen += 1;
     position += 1;
   }
-  return { text, caret: Math.max(1, position) };
+  return { text, caret: Math.max(symbol.length, position) };
 }
 
-/** "£1,150.5" to 115050. Null when empty. */
-export function parsePence(text: string) {
-  const { whole, pence } = cleanMoney(text);
-  if (!whole && !pence) return null;
-  return Number(whole || "0") * 100 + Number((pence ?? "").padEnd(2, "0") || "0");
+/** The typed text in whole minor units of `currency` ("£1,150.5" → 115050). Null when empty. */
+export function parseTypedMinor(text: string, currency: string) {
+  const digits = minorDigits(currency);
+  const { whole, fraction } = cleanMoney(text.slice(currencySymbol(currency).length), digits);
+  if (!whole && !fraction) return null;
+  return Number(whole || "0") * 10 ** digits + Number((fraction ?? "").padEnd(digits, "0") || "0");
 }
 
-/** For a stored amount: "£180,000" or "£24.10". */
-export function moneyText(pence: number | null, withPence: boolean) {
-  if (pence === null) return "";
-  if (withPence || pence % 100 !== 0) return `£${groupThousands(String(Math.floor(pence / 100)))}.${String(pence % 100).padStart(2, "0")}`;
-  return `£${groupThousands(String(pence / 100))}`;
+/** A stored amount as plain typed text in `currency`: "180000" or "24.10" (`withMinor` keeps the decimals). */
+export function typedFromMinor(minor: number, currency: string, withMinor: boolean) {
+  const digits = minorDigits(currency);
+  const unit = 10 ** digits;
+  const whole = Math.floor(minor / unit);
+  if (digits === 0 || (!withMinor && minor % unit === 0)) return String(whole);
+  return `${whole}.${String(minor % unit).padStart(digits, "0")}`;
 }
 
 /** UK postcodes: uppercase, one space before the last three characters. */
@@ -127,3 +124,13 @@ export function formatMobile(raw: string) {
 
 export const isCompleteMobile = (text: string) => text === "" || /^\+44 \d{4} \d{3} \d{3}$/.test(text);
 export const isCompletePostcode = (text: string) => text === "" || /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/.test(text);
+
+/** "just now", "5 minutes ago" from an ISO timestamp (null: ""). */
+export function timeAgoIso(iso: string | null | undefined, now = Date.now()) {
+  return iso ? timeAgo(Date.parse(iso), now) : "";
+}
+
+/** Days from now to an ISO timestamp, never negative. */
+export function daysUntilIso(iso: string | null | undefined, now = Date.now()) {
+  return iso ? daysUntil(Date.parse(iso), now) : 0;
+}

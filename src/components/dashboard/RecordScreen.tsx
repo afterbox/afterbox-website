@@ -12,15 +12,10 @@ import Page from "@/components/ui/dashboard/Page";
 import Ready from "@/components/ui/dashboard/Ready";
 import { ItemRow } from "@/components/ui/dashboard/rows";
 import { RecordSkeleton } from "@/components/ui/dashboard/Skeleton";
-import { amountText, getRecord, itemTitle, type RecordRow } from "@/lib/dashboard/api";
-import type { DashboardState } from "@/lib/dashboard/mock";
+import type { RecordFilter, RecordRow, RecordView } from "@/lib/api/types";
+import { itemAmount, itemTitle } from "@/lib/dashboard/items";
 import { pressable, transition } from "@/lib/motion";
-
-type Filter = "all" | "missing" | "new";
-
-const matchesFilter = (row: RecordRow, filter: Filter) =>
-  filter === "all" ||
-  (filter === "new" ? row.status === "new" : row.status === "missing" || (row.find && !row.item.complete));
+import { usePrefetchItem, useRecord } from "@/store/record";
 
 function matchesSearch(row: RecordRow, label: string, query: string) {
   const words = query.trim().toLowerCase();
@@ -32,22 +27,22 @@ function CollapseRow({ children }: { children: ReactNode }) {
   return <motion.div {...useCollapse()}>{children}</motion.div>;
 }
 
-function Record({ state }: { state: DashboardState }) {
-  const record = getRecord(state);
+/** The filter is the API's (`?filter=`); the last list stays on screen while the next loads. Search is local. */
+function Record({ record, filter, onFilter }: { record: RecordView; filter: RecordFilter; onFilter: (filter: RecordFilter) => void }) {
   const { open } = useLayers();
-  const [filter, setFilter] = useState<Filter>("all");
+  const prefetchItem = usePrefetchItem();
   const [query, setQuery] = useState("");
 
-  const filters: { id: Filter; label: string; count: number }[] = [
+  const filters: { id: RecordFilter; label: string; count: number }[] = [
     { id: "all", label: "All", count: record.all },
-    { id: "missing", label: "Needs details", count: record.missing },
+    { id: "needs-details", label: "Needs details", count: record.missing },
     { id: "new", label: "New", count: record.fresh },
   ];
 
   const sections = record.sections
     .map((section) => ({
       ...section,
-      shown: section.rows.filter((row) => matchesFilter(row, filter) && matchesSearch(row, section.category.label, query)),
+      shown: section.rows.filter((row) => matchesSearch(row, section.category.label, query)),
     }))
     .filter((section) => section.shown.length > 0);
 
@@ -80,7 +75,7 @@ function Record({ state }: { state: DashboardState }) {
               key={option.id}
               type="button"
               aria-pressed={active}
-              onClick={() => setFilter(option.id)}
+              onClick={() => onFilter(option.id)}
               className={`inline-flex h-[34px] cursor-pointer items-center rounded-full px-3.5 text-[13px] font-semibold transition-colors duration-[var(--motion-base)] ease-[var(--motion-ease)] ${pressable} ${
                 active ? "bg-ink-deep text-on-night" : "border border-line text-ink hover:bg-card"
               }`}
@@ -104,15 +99,18 @@ function Record({ state }: { state: DashboardState }) {
               <AnimatePresence initial={false}>
                 {section.shown.map((row) => (
                   <CollapseRow key={row.item.id}>
-                    <ItemRow
-                      {...(row.find
-                        ? { onClick: () => open("review", { find: row.item.id }) }
-                        : { href: `/home/record/${row.item.category}/${row.item.id}`, name: `record-${row.item.id}` })}
-                      monogram={row.item.monogram}
-                      title={itemTitle(row.item)}
-                      sub={[row.item.provider ? row.item.name : null, amountText(row.item)].filter(Boolean).join(" · ") || null}
-                      status={row.status}
-                    />
+                    <div onPointerEnter={() => !row.find && prefetchItem(row.item.id)} onFocus={() => !row.find && prefetchItem(row.item.id)}>
+                      <ItemRow
+                        {...(row.find
+                          ? { onClick: () => open("review", { find: row.item.id }) }
+                          : { href: `/home/record/${row.item.category}/${row.item.id}`, name: `record-${row.item.id}` })}
+                        monogram={row.item.monogram}
+                        group={row.item.group}
+                        title={itemTitle(row.item)}
+                        sub={[row.item.provider ? row.item.name : null, itemAmount(row.item)].filter(Boolean).join(" · ") || null}
+                        status={row.status}
+                      />
+                    </div>
                   </CollapseRow>
                 ))}
               </AnimatePresence>
@@ -129,7 +127,7 @@ function Record({ state }: { state: DashboardState }) {
             transition={transition("base")}
             className="text-[15px] text-ink-soft"
           >
-            Nothing matches.
+            {record.all === 0 ? "Nothing here yet. Add something to start." : "Nothing matches."}
           </motion.p>
         )}
       </AnimatePresence>
@@ -146,5 +144,11 @@ const sectionMotion = {
 };
 
 export default function RecordScreen() {
-  return <Ready skeleton={<RecordSkeleton />}>{(state) => <Record state={state} />}</Ready>;
+  const [filter, setFilter] = useState<RecordFilter>("all");
+  const query = useRecord(filter);
+  return (
+    <Ready query={query} skeleton={<RecordSkeleton />}>
+      {(record) => <Record record={record} filter={filter} onFilter={setFilter} />}
+    </Ready>
+  );
 }

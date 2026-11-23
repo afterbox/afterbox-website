@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { CheckIcon, ResendIcon } from "@/components/ui/icons";
 import { useReveal } from "@/components/ui/onboarding/Motion";
 import Spinner from "@/components/ui/Spinner";
-import { timings } from "@/lib/mock-auth";
+import { timings } from "@/lib/auth";
 
 type ResendTimerProps = {
   onResend: () => void;

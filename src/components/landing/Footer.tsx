@@ -1,5 +1,6 @@
 import Button from "@/components/ui/Button";
 import ResponsiveImage from "@/components/ui/ResponsiveImage";
+import UpdatesForm from "./UpdatesForm";
 
 /*
   Closing photo card, then the footer proper.
@@ -54,29 +55,7 @@ export default function Footer() {
             </p>
           </div>
 
-          <form
-            // TODO: connect. Until then, method="dialog" outside a <dialog> makes
-            // submitting do nothing, without any client JavaScript.
-            method="dialog"
-            className="flex flex-col gap-2.5 md:w-[400px]"
-          >
-            <label htmlFor="updates-email" className="text-sm text-on-night-soft">
-              Get updates as we launch
-            </label>
-            <div className="flex rounded-full border border-on-night/35 py-1 pr-1 pl-[18px] has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-on-night md:pl-5">
-              <input
-                id="updates-email"
-                type="email"
-                name="email"
-                autoComplete="email"
-                placeholder="Your email"
-                className="min-w-0 flex-1 bg-transparent text-base text-on-night outline-none placeholder:text-on-night-soft"
-              />
-              <Button type="submit" variant="light" size="sm">
-                Join
-              </Button>
-            </div>
-          </form>
+          <UpdatesForm />
         </div>
 
         <div className="mt-10 flex justify-between gap-6 border-t border-on-night/15 pt-5 text-xs/[18px] text-on-night-soft md:mt-16 md:pt-6 md:text-[13px]/5">

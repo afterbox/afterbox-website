@@ -12,35 +12,45 @@ import Page from "@/components/ui/dashboard/Page";
 import Ready from "@/components/ui/dashboard/Ready";
 import { ItemRow } from "@/components/ui/dashboard/rows";
 import { CategorySkeleton } from "@/components/ui/dashboard/Skeleton";
-import { amountText, getCategoryView } from "@/lib/dashboard/api";
-import { formatPence } from "@/lib/dashboard/format";
-import type { CategoryId, DashboardState, Item } from "@/lib/dashboard/mock";
+import type { CategoryView, Item } from "@/lib/api/types";
+import { categoryInfo } from "@/lib/categories";
+import { itemAmount } from "@/lib/dashboard/items";
 import { stagger } from "@/lib/motion";
+import { formatMoneyList, formatValue } from "@/lib/money";
+import { usePrefetchItem, useCategoryView } from "@/store/record";
 
 function Row({ item, index }: { item: Item; index: number }) {
   const collapse = useCollapse();
   const reveal = useReveal().rise(index * stagger.base);
+  const prefetch = usePrefetchItem();
   return (
-    <motion.div {...collapse} initial={reveal.initial} animate={{ ...reveal.animate, height: "auto" }} transition={reveal.transition}>
+    <motion.div
+      {...collapse}
+      initial={reveal.initial}
+      animate={{ ...reveal.animate, height: "auto" }}
+      transition={reveal.transition}
+      onPointerEnter={() => prefetch(item.id)}
+      onFocus={() => prefetch(item.id)}
+    >
       <ItemRow
         href={`/home/record/${item.category}/${item.id}`}
         name={`category-${item.id}`}
         monogram={item.monogram}
+        group={item.group}
         size="row"
         title={item.name}
-        sub={amountText(item)}
+        sub={itemAmount(item)}
         status={item.isNew ? "new" : item.complete ? "complete" : "missing"}
       />
     </motion.div>
   );
 }
 
-function Category({ id, state }: { id: CategoryId; state: DashboardState }) {
-  const view = getCategoryView(state, id);
-  const category = view.category!;
+function Category({ id, view }: { id: string; view: CategoryView }) {
+  const category = { ...categoryInfo(id), ...view.category };
   const { open } = useLayers();
   const [fromHome] = useState(useSearchParams().get("from") === "home");
-  const money = view.monthly > 0 ? `${formatPence(view.monthly)} a month` : view.worth > 0 ? formatPence(view.worth).replace(/\.00$/, "") : null;
+  const money = formatMoneyList(view.monthly, "a month") ?? formatMoneyList(view.worth, "", formatValue);
 
   return (
     <Page>
@@ -71,6 +81,11 @@ function Category({ id, state }: { id: CategoryId; state: DashboardState }) {
   );
 }
 
-export default function CategoryScreen({ id }: { id: CategoryId }) {
-  return <Ready skeleton={<CategorySkeleton />}>{(state) => <Category id={id} state={state} />}</Ready>;
+export default function CategoryScreen({ id }: { id: string }) {
+  const query = useCategoryView(id);
+  return (
+    <Ready query={query} skeleton={<CategorySkeleton />}>
+      {(view) => <Category id={id} view={view} />}
+    </Ready>
+  );
 }

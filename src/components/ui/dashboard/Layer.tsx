@@ -38,7 +38,7 @@ import { useMobile } from "./useMedia";
 let depth = 0;
 
 /** Params that belong to overlays and go when they close. */
-const OVERLAY_PARAMS = ["sheet", "layer", "item", "step", "category", "find", "replace", "via"];
+const OVERLAY_PARAMS = ["sheet", "layer", "item", "step", "category", "find", "replace", "via", "approval", "request", "document"];
 
 export function useLayers() {
   const router = useRouter();

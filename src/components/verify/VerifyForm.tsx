@@ -1,33 +1,24 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Link } from "@/components/ui/Links";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AuthCard from "@/components/ui/auth/AuthCard";
 import AuthTitle from "@/components/ui/auth/AuthTitle";
 import CodeInput, { CODE_LENGTH, type CodeInputState } from "@/components/ui/auth/CodeInput";
 import ResendTimer from "@/components/ui/auth/ResendTimer";
-import { onboardingHref, useHandOff } from "@/components/ui/auth/useHandOff";
+import { useHandOff } from "@/components/ui/auth/useHandOff";
 import BrandMark from "@/components/ui/BrandMark";
 import FormMessage, { Reveal } from "@/components/ui/FormMessage";
 import { PencilIcon } from "@/components/ui/icons";
-import {
-  authHref,
-  checkCode,
-  DEMO_CODE,
-  DEMO_EMAIL,
-  isOffline,
-  MAX_TRIES,
-  readDemo,
-  readMode,
-  timings,
-  type AuthMode,
-  type Demo,
-} from "@/lib/mock-auth";
+import { Link } from "@/components/ui/Links";
+import { errorCopy, isApiError } from "@/lib/api/errors";
+import { safePath, takeAfterSignIn, withNext } from "@/lib/afterSignIn";
+import { authHref, clock, isOffline, readMode, timings, type AuthMode } from "@/lib/auth";
 import { FLOW_CARD, transition } from "@/lib/motion";
+import { useStartEmail, useVerifyCode } from "@/store/auth";
 
-type Status = "idle" | "checking" | "wrong" | "expired" | "locked" | "offline" | "verified";
+type Status = "idle" | "checking" | "wrong" | "expired" | "locked" | "offline" | "failed" | "verified";
 
 const boxState: Partial<Record<Status, CodeInputState>> = {
   checking: "checking",
@@ -37,43 +28,35 @@ const boxState: Partial<Record<Status, CodeInputState>> = {
   verified: "verified",
 };
 
-const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-
 type VerifyScreenProps = {
   email: string;
   from: AuthMode;
-  demo: Demo | null;
-  /** Onboarding's `?mock=` scenario, passed on to /start. */
-  mock?: string | null;
+  /** `?next=` from /login: the page that sent them to sign in (a help request or approval link). */
+  after?: string | null;
 };
 
-export function VerifyScreen({ email, from, demo, mock }: VerifyScreenProps) {
-  const [code, setCode] = useState(demo === "expired" ? DEMO_CODE : "");
-  const [status, setStatus] = useState<Status>(
-    demo === "expired" ? "expired" : demo === "locked" ? "locked" : demo === "offline" ? "offline" : "idle",
-  );
-  const [lockLeft, setLockLeft] = useState<number>(timings.lockout);
+export function VerifyScreen({ email, from, after = null }: VerifyScreenProps) {
+  const [code, setCode] = useState("");
+  const [status, setStatus] = useState<Status>("idle");
+  const [lockLeft, setLockLeft] = useState(0);
+  const [triesLeft, setTriesLeft] = useState<number | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [next, setNext] = useState<string | null>(null);
   const [shakeKey, setShakeKey] = useState(0);
-  const tries = useRef(0);
-  const busy = useRef(false);
-  const typed = useRef(false);
-  const verified = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const backHref = authHref(from, email);
+  const verify = useVerifyCode();
+  const resendCode = useStartEmail();
+  const backHref = withNext(authHref(from, email), after);
 
-  const contentLeaving = useHandOff(
-    status === "verified" ? onboardingHref(from === "login" ? "returning" : "new", mock) : null,
-    timings.verifiedHold,
-  );
+  // New members start onboarding; returning ones go to Home, whose gate unlocks or resumes onboarding.
+  const contentLeaving = useHandOff(status === "verified" ? next : null, timings.verifiedHold);
 
   // Next keeps a visited page alive but hidden; coming back should ask for a fresh code, not reuse this one.
   useEffect(
     () => () => {
-      if (!verified.current) return;
-      verified.current = false;
-      typed.current = false;
       setCode("");
       setStatus("idle");
+      setNext(null);
     },
     [],
   );
@@ -81,81 +64,95 @@ export function VerifyScreen({ email, from, demo, mock }: VerifyScreenProps) {
   useEffect(() => {
     if (status !== "locked") return;
     const timer = setTimeout(() => {
-      if (lockLeft > 1) {
-        setLockLeft(lockLeft - 1);
-        return;
-      }
-      tries.current = 0;
-      setLockLeft(timings.lockout);
-      setStatus("idle");
+      if (lockLeft > 1) setLockLeft(lockLeft - 1);
+      else setStatus("idle");
     }, 1000);
     return () => clearTimeout(timer);
   }, [status, lockLeft]);
 
-  async function check(value: string) {
-    if (busy.current) return;
+  function check(value: string) {
+    if (verify.isPending) return;
     if (isOffline()) {
       setStatus("offline");
       return;
     }
-    busy.current = true;
     setStatus("checking");
-    const result = await checkCode(value);
-    busy.current = false;
-    if (result === "ok") {
-      verified.current = true;
-      setStatus("verified");
-      return;
-    }
-    tries.current += 1;
-    if (tries.current >= MAX_TRIES) {
-      setCode("");
-      setLockLeft(timings.lockout);
-      setStatus("locked");
-      return;
-    }
-    setStatus("wrong");
-    setShakeKey((key) => key + 1);
-    inputRef.current?.focus();
+    verify.mutate(
+      { email, code: value },
+      {
+        onSuccess: ({ isNew }) => {
+          // A page that sent them here (a help request, approval or invite link) comes first. Home's gate unlocks
+          // on the way (/unlock?next=…), so they land on it with the record open.
+          const remembered = takeAfterSignIn();
+          setNext(after ?? remembered ?? (isNew ? "/start" : "/home"));
+          setStatus("verified");
+        },
+        onError: (error) => {
+          if (isApiError(error) && (error.code === "LOCKED" || error.code === "RATE_LIMITED")) {
+            setCode("");
+            setLockLeft(error.retryAfter ?? 599);
+            setStatus("locked");
+            return;
+          }
+          if (isApiError(error) && error.code === "CODE_EXPIRED") {
+            setStatus("expired");
+            return;
+          }
+          if (isApiError(error) && error.code === "CODE_WRONG") {
+            setTriesLeft(error.details.triesLeft ?? null);
+            setStatus("wrong");
+            setShakeKey((key) => key + 1);
+            inputRef.current?.focus();
+            return;
+          }
+          if (isApiError(error) && error.code === "NETWORK") {
+            setStatus("offline");
+            return;
+          }
+          setFailure(errorCopy(error));
+          setStatus("failed");
+        },
+      },
+    );
   }
 
   function handleChange(value: string) {
-    if (busy.current) return;
+    if (verify.isPending) return;
     setCode(value);
     setStatus("idle");
     if (value.length === CODE_LENGTH) check(value);
   }
 
-  // Mock of the email arriving and the phone offering the code.
-  const autofill = useEffectEvent((length: number) => {
-    if (!typed.current) handleChange(DEMO_CODE.slice(0, length));
-  });
-
-  useEffect(() => {
-    if (demo) return;
-    const timers = Array.from({ length: CODE_LENGTH }, (_, index) =>
-      setTimeout(() => autofill(index + 1), timings.autofillDelay + index * timings.autofillStep),
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [demo]);
-
   function resend() {
-    tries.current = 0;
     setCode("");
     setStatus("idle");
+    setTriesLeft(null);
     inputRef.current?.focus();
+    resendCode.mutate(
+      { email, mode: from },
+      {
+        onError: (error) => {
+          setFailure(errorCopy(error));
+          setStatus("failed");
+        },
+      },
+    );
   }
 
   const message =
     status === "wrong"
-      ? "Wrong code. Try again."
+      ? triesLeft === 1
+        ? "Wrong code. One more try."
+        : "Wrong code. Try again."
       : status === "expired"
-        ? "Code expired."
+        ? "Code expired. Send a new one."
         : status === "locked"
           ? `Too many tries. Try again in ${clock(lockLeft)}.`
           : status === "offline"
             ? "You're offline."
-            : null;
+            : status === "failed"
+              ? failure
+              : null;
   const icon = status === "locked" ? "clock" : status === "offline" ? "wifiOff" : "alert";
 
   return (
@@ -179,19 +176,16 @@ export function VerifyScreen({ email, from, demo, mock }: VerifyScreenProps) {
         <CodeInput
           ref={inputRef}
           value={code}
-          onChange={(value) => {
-            typed.current = true;
-            handleChange(value);
-          }}
+          onChange={handleChange}
           state={boxState[status] ?? "idle"}
           shakeKey={shakeKey}
-          readOnly={status === "checking" || status === "expired" || status === "verified"}
+          readOnly={status === "checking" || status === "verified" || status === "locked"}
           describedBy={message ? "code-message" : undefined}
         />
         <FormMessage id="code-message" message={message} icon={icon} live={status !== "locked"} />
         {status === "locked" && (
           <span role="status" className="sr-only">
-            Too many tries. Try again in 10 minutes.
+            Too many tries. Try again in {Math.ceil(lockLeft / 60)} minutes.
           </span>
         )}
 
@@ -212,12 +206,5 @@ export function VerifyScreen({ email, from, demo, mock }: VerifyScreenProps) {
 
 export default function VerifyForm() {
   const params = useSearchParams();
-  return (
-    <VerifyScreen
-      email={params.get("email") || DEMO_EMAIL}
-      from={readMode(params.get("from"))}
-      demo={readDemo(params.get("demo"))}
-      mock={params.get("mock")}
-    />
-  );
+  return <VerifyScreen email={params.get("email") ?? ""} from={readMode(params.get("from"))} after={safePath(params.get("next"))} />;
 }

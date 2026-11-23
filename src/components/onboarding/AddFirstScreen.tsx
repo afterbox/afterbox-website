@@ -6,14 +6,19 @@ import OnboardingCard from "@/components/ui/onboarding/OnboardingCard";
 import ScreenTitle from "@/components/ui/onboarding/ScreenTitle";
 import { liftable, pressable, stagger } from "@/lib/motion";
 
-/** Each tile starts a record by hand and opens the dashboard's add form for that kind. */
+/**
+ * Each tile starts a record by hand: the record is locked first (/secure: everything added is encrypted to it),
+ * then the dashboard's add form opens for that kind.
+ */
+const lockThen = (next: string) => `/secure?next=${encodeURIComponent(next)}`;
+
 const kinds: { label: string; Icon: typeof HomeIcon; href: string }[] = [
-  { label: "Home", Icon: HomeIcon, href: "/home?start=manual&sheet=type&category=property" },
-  { label: "Investment", Icon: TrendIcon, href: "/home?start=manual&sheet=type&category=investments" },
-  { label: "Pension", Icon: MoneyIcon, href: "/home?start=manual&sheet=type&category=pensions" },
-  { label: "Insurance", Icon: UmbrellaIcon, href: "/home?start=manual&sheet=type&category=insurance" },
-  { label: "Bank account", Icon: CardIcon, href: "/home?start=manual&sheet=type&category=bank-accounts" },
-  { label: "Document", Icon: DocumentIcon, href: "/home?start=manual&sheet=add" },
+  { label: "Home", Icon: HomeIcon, href: lockThen("/home?sheet=type&category=property") },
+  { label: "Investment", Icon: TrendIcon, href: lockThen("/home?sheet=type&category=investments") },
+  { label: "Pension", Icon: MoneyIcon, href: lockThen("/home?sheet=type&category=pensions") },
+  { label: "Insurance", Icon: UmbrellaIcon, href: lockThen("/home?sheet=type&category=insurance") },
+  { label: "Bank account", Icon: CardIcon, href: lockThen("/home?sheet=type&category=bank-accounts") },
+  { label: "Document", Icon: DocumentIcon, href: lockThen("/home?sheet=add") },
 ];
 
 /** 13: pick what to add by hand. */

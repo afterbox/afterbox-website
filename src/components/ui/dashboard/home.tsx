@@ -15,20 +15,29 @@ import {
   SparkleIcon,
 } from "@/components/ui/icons";
 import { Link } from "@/components/ui/Links";
-import { findsLine, type CategorySummary, type Task } from "@/lib/dashboard/api";
-import { formatPence, plural } from "@/lib/dashboard/format";
-import type { DashEvent, Item } from "@/lib/dashboard/mock";
+import type { HomeEvent, HomeTile, Item, Money, Task } from "@/lib/api/types";
+import { plural } from "@/lib/dashboard/format";
+import { formatMoneyList, formatValue } from "@/lib/money";
+import { usePrefetchCategory } from "@/store/record";
 import { distance, liftable, pressable, stagger, transition } from "@/lib/motion";
 import { useMotionTokens } from "@/lib/useMotionTokens";
 import { CategoryGlyph, Square, StackedMonograms } from "./bits";
 
 /* Tiles: one per category. */
 
-export function Tile({ summary, delay = 0 }: { summary: CategorySummary; delay?: number }) {
+export function Tile({ summary, delay = 0 }: { summary: HomeTile; delay?: number }) {
   const { move } = useMotionTokens();
-  const money = summary.monthly > 0 ? `${formatPence(summary.monthly)} a month` : summary.worth > 0 ? formatPence(summary.worth).replace(/\.00$/, "") : null;
+  const prefetch = usePrefetchCategory();
+  // Each currency apart, home currency first: "£34.97 a month + $15.49 a month".
+  const money = formatMoneyList(summary.monthly, "a month") ?? formatMoneyList(summary.worth, "", formatValue);
   return (
-    <motion.li initial={{ opacity: 0, y: move(distance.rise) }} animate={{ opacity: 1, y: 0 }} transition={transition("base", delay)}>
+    <motion.li
+      initial={{ opacity: 0, y: move(distance.rise) }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={transition("base", delay)}
+      onPointerEnter={() => prefetch(summary.id)}
+      onFocus={() => prefetch(summary.id)}
+    >
       <Link
         href={`/home/record/${summary.id}?from=home`}
         name={`tile-${summary.id}`}
@@ -38,7 +47,10 @@ export function Tile({ summary, delay = 0 }: { summary: CategorySummary; delay?:
           <Square size={36}>
             <CategoryGlyph icon={summary.icon} size={18} />
           </Square>
-          <StackedMonograms letters={summary.monograms} />
+          <span className="flex items-center gap-2">
+            {summary.plusOne ? <span className="text-xs/[normal] font-semibold text-positive">+{summary.plusOne}</span> : null}
+            <StackedMonograms letters={summary.monograms} />
+          </span>
         </span>
         <span className="block min-w-0 flex-1">
           <span className="block text-[24px]/none tracking-[-0.03em] text-ink sm:text-[28px]/none">{summary.count}</span>
@@ -62,7 +74,7 @@ export function Tile({ summary, delay = 0 }: { summary: CategorySummary; delay?:
 
 /* The dark "new finds" banner, with the haze glow drifting behind. */
 
-export function FindsBanner({ finds, onReview }: { finds: Item[]; onReview: () => void }) {
+export function FindsBanner({ count, line, onReview }: { count: number; line: string | null; onReview: () => void }) {
   return (
     <div className="relative flex items-center gap-4 overflow-hidden rounded-card bg-ink-deep p-[18px] sm:px-6 sm:py-[22px]">
       <span
@@ -73,8 +85,8 @@ export function FindsBanner({ finds, onReview }: { finds: Item[]; onReview: () =
         <SparkleIcon size={22} className="max-sm:size-5" />
       </Square>
       <div className="relative min-w-0 flex-1">
-        <p className="text-[17px] tracking-[-0.01em] text-on-night sm:text-[20px]">{plural(finds.length, "new find", "new finds")}</p>
-        <p className="mt-[3px] text-[13px] text-on-night-soft">{findsLine(finds)}</p>
+        <p className="text-[17px] tracking-[-0.01em] text-on-night sm:text-[20px]">{plural(count, "new find", "new finds")}</p>
+        {line && <p className="mt-[3px] text-[13px] text-on-night-soft">{line}</p>}
       </div>
       <button
         type="button"
@@ -256,14 +268,14 @@ export function NextUp({ tasks, onChoose, onDocument }: { tasks: Task[]; onChoos
 
 const eventIcons = { check: CheckIcon, resend: ResendIcon, flag: FlagIcon } as const;
 
-export function Events({ events, title, delay = 0 }: { events: DashEvent[]; title: string; delay?: number }) {
+export function Events({ events, title, delay = 0, onOpen }: { events: HomeEvent[]; title: string; delay?: number; onOpen?: (event: HomeEvent) => void }) {
   const { move } = useMotionTokens();
   return (
     <section aria-label={title}>
       <h2 className="mb-3 text-[15px] font-semibold text-ink">{title}</h2>
       <ul className="no-scrollbar -mx-6 flex snap-x snap-mandatory scroll-px-6 gap-2.5 overflow-x-auto px-6 sm:mx-0 sm:block sm:overflow-visible sm:px-0">
         {events.map((event, index) => {
-          const Icon = eventIcons[event.icon];
+          const Icon = eventIcons[event.icon] ?? CheckIcon;
           const tint = event.tone === "positive" ? "bg-positive/6 text-positive" : "bg-warn/6 text-warn";
           return (
             <motion.li
@@ -276,6 +288,7 @@ export function Events({ events, title, delay = 0 }: { events: DashEvent[]; titl
               <Link
                 href={event.href}
                 name={`event-${event.id}`}
+                onClick={() => onOpen?.(event)}
                 className={`group flex h-full flex-col rounded-panel border border-line p-4 sm:flex-row sm:items-center sm:gap-3.5 sm:px-[18px] ${
                   event.tone === "positive" ? "bg-positive/6" : "bg-warn/6"
                 } ${pressable}`}
@@ -297,7 +310,7 @@ export function Events({ events, title, delay = 0 }: { events: DashEvent[]; titl
   );
 }
 
-export function SavedSoFar({ yearly }: { yearly: number }) {
+export function SavedSoFar({ yearly }: { yearly: Money[] }) {
   return (
     <section aria-label="Saved so far">
       <h2 className="mb-3 text-[15px] font-semibold text-ink">Saved so far</h2>
@@ -306,7 +319,7 @@ export function SavedSoFar({ yearly }: { yearly: number }) {
           <PoundIcon size={18} />
         </Square>
         <p className="text-sm/[normal] text-ink-soft">
-          <span className="text-[22px] tracking-[-0.02em] text-ink tabular-nums">{formatPence(yearly)}</span> a year saved
+          <span className="text-[22px] tracking-[-0.02em] text-ink tabular-nums">{formatMoneyList(yearly)}</span> a year saved
         </p>
       </div>
     </section>

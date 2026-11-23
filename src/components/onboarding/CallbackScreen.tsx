@@ -2,64 +2,62 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { useOnboarding } from "@/lib/onboarding/store";
-import { consumeTinkState } from "@/lib/onboarding/tink";
+import OnboardingCard from "@/components/ui/onboarding/OnboardingCard";
+import ScreenTitle from "@/components/ui/onboarding/ScreenTitle";
+import Spinner from "@/components/ui/Spinner";
+import { isApiError } from "@/lib/api/errors";
+import { takeTinkReturn, useBankCallback } from "@/store/banks";
 
 /**
- * Tink sends people back here. A wrong or missing `state` is treated as cancelled.
- * `?code` connects the bank; `?error` (USER_CANCELLED or anything else) is cancelled,
- * except a second bank, which goes back to the results with a note.
- * A renewal from the dashboard goes back to its bank page either way.
+ * Tink sends people back here with `credentials_id` and our `state` (every plan), or `error=…` when they backed
+ * out (no API call then). The callback sends `{state, credentialsId}` and moves on: to the reading screen, or to
+ * the bank's page after a renewal.
  */
 export default function CallbackScreen() {
   const params = useSearchParams();
   const router = useRouter();
-  const { state, actions } = useOnboarding();
-  const pending = state.pending;
+  const callback = useBankCallback();
   const handled = useRef(false);
-
-  useEffect(() => {
-    router.prefetch("/connect/cancelled");
-    router.prefetch("/connect/reading");
-    router.prefetch("/found");
-  }, [router]);
 
   useEffect(() => {
     // The state is single use, so this must run once even when effects run twice in development.
     if (handled.current) return;
     handled.current = true;
 
-    const valid = consumeTinkState(params.get("state"));
-    const code = params.get("code");
+    const back = takeTinkReturn();
+    const renewing = back?.kind === "renew" ? back.bankId : null;
+    const another = back?.kind === "connect" && back.another;
+    const state = params.get("state");
+    const credentialsId = params.get("credentials_id");
 
-    if (pending?.renew) {
-      const bankHref = `/home/settings/banks/${pending.bankId}`;
-      if (valid && code) {
-        actions.connectPending(code);
-        router.replace(`${bankHref}?renewed=1`);
-      } else {
-        actions.cancelPending();
-        router.replace(bankHref);
-      }
+    if (params.get("error") || !state || !credentialsId) {
+      if (renewing) router.replace(`/home/settings/banks/${renewing}`);
+      else router.replace(another ? "/connect/cancelled?another=1" : "/connect/cancelled");
       return;
     }
 
-    if (!valid) {
-      router.replace("/connect/cancelled");
-      return;
-    }
-    if (!pending) {
-      router.replace("/connect/bank");
-    } else if (code) {
-      actions.connectPending(code);
-      router.replace("/connect/reading");
-    } else if (pending.another) {
-      actions.failPending();
-      router.replace("/found");
-    } else {
-      router.replace("/connect/cancelled");
-    }
-  }, [params, pending, actions, router]);
+    callback.mutate(
+      { state, credentialsId },
+      {
+        onSuccess: ({ connectionId }) => {
+          if (renewing) router.replace(`/home/settings/banks/${renewing}?renewed=1`);
+          else router.replace(`/connect/reading?connection=${encodeURIComponent(connectionId)}${another ? "&another=1" : ""}`);
+        },
+        onError: (error) => {
+          const reason = isApiError(error) && error.code === "BANK_ALREADY_CONNECTED" ? "already" : isApiError(error) && error.isLimit ? "limit" : "failed";
+          if (renewing) router.replace(`/home/settings/banks/${renewing}?problem=${reason}`);
+          else router.replace(`/connect/cancelled?reason=${reason}${another ? "&another=1" : ""}`);
+        },
+      },
+    );
+  }, [callback, params, router]);
 
-  return null;
+  return (
+    <OnboardingCard>
+      <ScreenTitle className="mb-7">Connecting</ScreenTitle>
+      <div className="flex justify-center">
+        <Spinner className="text-ink-soft" />
+      </div>
+    </OnboardingCard>
+  );
 }

@@ -1,0 +1,21 @@
+import { execSync } from "node:child_process";
+
+/**
+ * Local stack only (docker compose in ../afterbox-backend):
+ * - the API must be healthy (it isn't restarted: start it with docker compose if this fails).
+ * - the per-IP sign-in code limit (20 an hour) is reset in the local Redis, so a run doesn't fail on the previous
+ *   run's sign-ins. Nothing else is touched.
+ */
+async function healthy() {
+  try {
+    const response = await fetch("http://localhost:8000/health", { signal: AbortSignal.timeout(3000) });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+export default async function globalSetup() {
+  if (!(await healthy())) throw new Error("The local API isn't healthy: docker compose up -d api worker redis (../afterbox-backend)");
+  execSync(`docker exec afterbox-redis-1 sh -c 'redis-cli --scan --pattern "throttle:auth-start-ip*" | xargs -r redis-cli del'`, { stdio: "ignore" });
+}
