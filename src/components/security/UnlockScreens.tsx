@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useAnimate } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useId, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from "react";
 import Button from "@/components/ui/Button";
 import FormMessage from "@/components/ui/FormMessage";
 import {
@@ -36,7 +36,14 @@ import { useMe } from "@/store/me";
 import { useRealtimeEvent } from "@/store/realtime";
 import { useUnlockWithCode } from "@/store/recovery";
 import { useDeviceBlob, useOpenRequest, useUnlockOptions, useUnlockWithPasskey } from "@/store/unlock";
+import { withNext } from "@/lib/afterSignIn";
 import { safeNext } from "./SecureScreen";
+
+/** Moves between the ways in keep the page to land on afterwards (`?next=`, from a link opened signed out). */
+function useKeepNext() {
+  const next = useSearchParams().get("next");
+  return useCallback((href: string) => withNext(href, next), [next]);
+}
 import YoureIn, { NEW_BACKUP_CODE } from "./YoureIn";
 
 export function DeviceGlyph({ kind, size }: { kind: DeviceKind; size: number }) {
@@ -79,9 +86,10 @@ function WaysList({ onDone }: { onDone?: () => void }) {
   const router = useRouter();
   const options = useUnlockOptions();
   const request = useRequestApproval();
+  const keepNext = useKeepNext();
   const go = (href: string) => {
     onDone?.();
-    router.push(href);
+    router.push(keepNext(href));
   };
 
   if (options.isPending) {
@@ -216,6 +224,7 @@ function NewDeviceStep({ dropped }: { dropped: boolean }) {
 function WaitingStep({ me, approvalId, kind, onIn }: { me: Me; approvalId: string; kind: DeviceKind; onIn: () => void }) {
   const { reduced } = useMotionTokens();
   const router = useRouter();
+  const keepNext = useKeepNext();
   const approval = useApproval(approvalId, { poll: true });
   const collect = useCollectApproval();
   const collecting = useRef(false);
@@ -241,7 +250,7 @@ function WaitingStep({ me, approvalId, kind, onIn }: { me: Me; approvalId: strin
         </RoundIcon>
         <PageTitle className="mb-3">{status === "declined" ? "That request was blocked" : "That request has ended"}</PageTitle>
         <Lead className="mb-9">Ask again, or choose another way in.</Lead>
-        <Button variant="inkDeep" size="block" onClick={() => router.replace("/unlock")}>
+        <Button variant="inkDeep" size="block" onClick={() => router.replace(keepNext("/unlock"))}>
           Choose a way in
         </Button>
       </div>
@@ -279,6 +288,7 @@ function WaitingStep({ me, approvalId, kind, onIn }: { me: Me; approvalId: strin
 /** /unlock: 04 (or the ways in, on a new device), 06 with `?wait=`, 05 over either, 08 once in. */
 export function UnlockScreen() {
   const router = useRouter();
+  const keepNext = useKeepNext();
   const params = useSearchParams();
   const me = useMe();
   const blob = useDeviceBlob(me.data?.keysReady ? me.data.id : undefined);
@@ -291,8 +301,8 @@ export function UnlockScreen() {
   // A request opened before a reload or a closed tab: back to its waiting screen.
   useEffect(() => {
     if (waitFor || !open.data) return;
-    router.replace(open.data.kind === "help" ? `/unlock/ask?request=${encodeURIComponent(open.data.id)}` : `/unlock?wait=${encodeURIComponent(open.data.id)}`);
-  }, [open.data, router, waitFor]);
+    router.replace(keepNext(open.data.kind === "help" ? `/unlock/ask?request=${encodeURIComponent(open.data.id)}` : `/unlock?wait=${encodeURIComponent(open.data.id)}`));
+  }, [keepNext, open.data, router, waitFor]);
 
   if (!me.data || blob.isPending) return null;
   if (inNow) return <YoureIn next={safeNext(params.get("next"))} />;
@@ -531,6 +541,7 @@ const backAt = (iso: string) => timeOfDay.format(new Date(iso)).replace(" ", "")
 
 function HelpWait({ me, requestId, onIn }: { me: Me; requestId: string; onIn: () => void }) {
   const router = useRouter();
+  const keepNext = useKeepNext();
   const help = useHelpRequest(requestId, { poll: true });
   const collect = useCollectHelp();
   const forget = useForgetHelpRequest();
@@ -594,7 +605,7 @@ function HelpWait({ me, requestId, onIn }: { me: Me; requestId: string; onIn: ()
         </RoundIcon>
         <PageTitle className="mb-3">{declined ? "Your trusted person didn’t approve" : "That request has ended"}</PageTitle>
         <Lead className="mb-9">Choose another way in, or ask again later.</Lead>
-        <Button variant="inkDeep" size="block" onClick={() => router.replace("/unlock")}>
+        <Button variant="inkDeep" size="block" onClick={() => router.replace(keepNext("/unlock"))}>
           Choose a way in
         </Button>
       </div>
@@ -668,6 +679,7 @@ function SetUpAgain({ next }: { next: string }) {
 
 export function AskScreen() {
   const router = useRouter();
+  const keepNext = useKeepNext();
   const params = useSearchParams();
   const me = useMe();
   const options = useUnlockOptions();
@@ -676,8 +688,8 @@ export function AskScreen() {
   const next = safeNext(params.get("next"));
 
   useEffect(() => {
-    if (!requestId && options.data && !options.data.helper) router.replace("/unlock");
-  }, [options.data, requestId, router]);
+    if (!requestId && options.data && !options.data.helper) router.replace(keepNext("/unlock"));
+  }, [keepNext, options.data, requestId, router]);
 
   if (!me.data) return null;
   if (inNow) return <SetUpAgain next={next} />;
@@ -687,7 +699,7 @@ export function AskScreen() {
       {requestId ? (
         <HelpWait me={me.data} requestId={requestId} onIn={() => setInNow(true)} />
       ) : (
-        <AskStep onSent={(id) => router.replace(`/unlock/ask?request=${encodeURIComponent(id)}`, { scroll: false })} />
+        <AskStep onSent={(id) => router.replace(keepNext(`/unlock/ask?request=${encodeURIComponent(id)}`), { scroll: false })} />
       )}
     </Step>
   );

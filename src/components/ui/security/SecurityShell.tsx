@@ -8,6 +8,7 @@ import { ChevronLeftIcon } from "@/components/ui/icons";
 import { pageCover, useLayerHistory } from "@/components/ui/dashboard/Layer";
 import { Toaster } from "@/components/ui/dashboard/toast";
 import { safeNext } from "@/components/security/SecureScreen";
+import { withNext } from "@/lib/afterSignIn";
 import { cssMotionVars, distance, pressable, transition } from "@/lib/motion";
 import { useMotionTokens } from "@/lib/useMotionTokens";
 import { useMe } from "@/store/me";
@@ -98,7 +99,7 @@ function Boot() {
 
   useEffect(() => {
     if (!unlocking || !me.data || busy) return;
-    if (!me.data.keysReady) router.replace("/secure");
+    if (!me.data.keysReady) router.replace(withNext("/secure", params.get("next")));
     else if (access === "open") router.replace(safeNext(params.get("next")));
   }, [access, busy, me.data, params, router, unlocking]);
 

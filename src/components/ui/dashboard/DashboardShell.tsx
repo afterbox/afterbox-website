@@ -9,6 +9,7 @@ import BrandMark from "@/components/ui/BrandMark";
 import { HomeIcon, ListIcon, PeopleIcon, PlusIcon } from "@/components/ui/icons";
 import { Link } from "@/components/ui/Links";
 import OfflineNotice from "@/components/ui/OfflineNotice";
+import { rememberAfterSignIn, takeAfterSignIn } from "@/lib/afterSignIn";
 import { cssMotionVars, distance, pressable, transition } from "@/lib/motion";
 import { useMotionTokens } from "@/lib/useMotionTokens";
 import { useMe } from "@/store/me";
@@ -282,15 +283,32 @@ function useGate() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
+  // Google sign-in lands on /home: a link that sent them to sign in (kept for this tab) comes first.
+  const after = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    if (access === "loading" || access === "open") return;
+    if (after.current === undefined) after.current = takeAfterSignIn();
+  }, []);
+
+  useEffect(() => {
+    if (access === "loading") return;
+    const query = params.toString();
+    const here = query ? `${pathname}?${query}` : pathname;
+    const target = after.current && after.current !== here ? after.current : null;
+    if (access === "open") {
+      if (target) router.replace(target);
+      after.current = null;
+      return;
+    }
     if (access === "secure") {
+      // Onboarding first; /start takes the link back from this tab once it can.
+      if (target) rememberAfterSignIn(target);
+      after.current = null;
       router.replace("/start");
       return;
     }
-    const query = params.toString();
-    router.replace(`/unlock?next=${encodeURIComponent(query ? `${pathname}?${query}` : pathname)}`);
+    after.current = null;
+    router.replace(`/unlock?next=${encodeURIComponent(target ?? here)}`);
   }, [access, params, pathname, router]);
 
   return access === "open";

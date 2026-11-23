@@ -9,6 +9,7 @@ import FormMessage from "@/components/ui/FormMessage";
 import { MailIcon } from "@/components/ui/icons";
 import { Link } from "@/components/ui/Links";
 import TextField from "@/components/ui/TextField";
+import { rememberAfterSignIn, withNext } from "@/lib/afterSignIn";
 import { errorCopy, hasCode } from "@/lib/api/errors";
 import { authHref, isOffline, isValidEmail, verifyHref, type AuthMode } from "@/lib/auth";
 import { transition } from "@/lib/motion";
@@ -46,6 +47,8 @@ type EmailAuthFormProps = {
   initialEmail?: string | null;
   /** /login?error=google: the backend's redirect after any Google failure. */
   googleFailed?: boolean;
+  /** A page to come back to after signing in (a help request or approval link opened signed out). */
+  next?: string | null;
 };
 
 /**
@@ -53,7 +56,7 @@ type EmailAuthFormProps = {
  * gets a code. `email/start` always answers "sent", so there's no "no account" state: people without one get an
  * email inviting them to sign up.
  */
-export default function EmailAuthForm({ mode, initialEmail, googleFailed = false }: EmailAuthFormProps) {
+export default function EmailAuthForm({ mode, initialEmail, googleFailed = false, next = null }: EmailAuthFormProps) {
   const router = useRouter();
   const text = copy[mode];
   const [email, setEmail] = useState(initialEmail ?? "");
@@ -95,8 +98,8 @@ export default function EmailAuthForm({ mode, initialEmail, googleFailed = false
       {
         onSuccess: () => {
           // Going back from /verify should find the email still filled in.
-          window.history.replaceState(null, "", authHref(mode, email.trim()));
-          router.push(verifyHref(mode, email));
+          window.history.replaceState(null, "", withNext(authHref(mode, email.trim()), next));
+          router.push(withNext(verifyHref(mode, email), next));
         },
         onError: (error) => {
           if (hasCode(error, "NETWORK")) setProblem({ kind: "offline" });
@@ -114,6 +117,8 @@ export default function EmailAuthForm({ mode, initialEmail, googleFailed = false
     }
     setProblem(null);
     setGoogle(true);
+    // Google comes back to /home or /start, without our query: the page to return to waits in this tab.
+    if (next) rememberAfterSignIn(next);
     window.location.assign(googleStartUrl(mode));
   }
 
@@ -172,7 +177,7 @@ export default function EmailAuthForm({ mode, initialEmail, googleFailed = false
           <p className="mt-8 text-center text-[13px] text-ink-soft sm:mt-[22px] sm:text-sm">
             {text.prompt}{" "}
             <Link
-              href={authHref(text.switchTo, email.trim())}
+              href={withNext(authHref(text.switchTo, email.trim()), next)}
               name={`auth-switch-${text.switchTo}`}
               className="font-semibold text-ink-deep underline underline-offset-3"
             >

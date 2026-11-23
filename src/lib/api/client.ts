@@ -103,6 +103,8 @@ export function refreshSession(): Promise<boolean> {
   if (!refreshing) {
     const run = async () => {
       const response = await send("POST", "/v1/auth/refresh", {});
+      // Read the (small) body: an unread one keeps the request open in Chromium, holding one of the host's connections.
+      await response.text().catch(() => "");
       return response.ok;
     };
     refreshing = (async () => {

@@ -10,6 +10,7 @@ import { Lead, PageTitle, RoundIcon } from "@/components/ui/dashboard/bits";
 import { Step } from "@/components/ui/dashboard/Layer";
 import BackupCode from "@/components/ui/security/BackupCode";
 import { errorCopy, isApiError } from "@/lib/api/errors";
+import { safePath } from "@/lib/afterSignIn";
 import { transition } from "@/lib/motion";
 import { generateCode } from "@/lib/security/backup";
 import { PASSKEY_ERROR, PasskeyError } from "@/lib/security/keychain";
@@ -17,9 +18,9 @@ import { useMotionTokens } from "@/lib/useMotionTokens";
 import { useLockRecord } from "@/store/keys";
 import { useMe } from "@/store/me";
 
-/** Where to go after locking: only our own record or invite pages. */
+/** Where to go after locking or unlocking: only our own record or invite pages (see safePath), else Home. */
 export function safeNext(next: string | null) {
-  return next && /^\/(home|invite\/)/.test(next) && !next.startsWith("//") ? next : "/home";
+  return safePath(next) ?? "/home";
 }
 
 /** 03's check: springs in over a soft green glow. */

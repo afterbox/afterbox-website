@@ -1,8 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { addVirtualAuthenticator, apiFromPage, connectDemoBank, enterCode, requestCode, setPlan, signUpWithPasskey, waitForEmail, watchConsole } from "./helpers";
 
-const ISSUE_PLAN_CACHE = "docs/BACKEND_ISSUES.md#9";
-
 /**
  * One member's journey on one page, in order: the device blob lives in this page's IndexedDB under a
  * non-extractable key, which no storage-state file can carry between tests.
@@ -129,7 +127,6 @@ test("add and edit an item", async () => {
 });
 
 test("scan a document and confirm it", async ({ browser }) => {
-  test.fixme(true, `confirm answers 402 (the free plan's 10 items): dev:plan doesn't clear the API's cached entitlements: ${ISSUE_PLAN_CACHE}`);
   // A readable insurance schedule, rendered to a PNG.
   const scratch = await browser.newPage();
   await scratch.setViewportSize({ width: 900, height: 1100 });

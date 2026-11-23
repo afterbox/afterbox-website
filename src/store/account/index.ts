@@ -6,7 +6,7 @@ import type { Account, AccountPatch } from "@/lib/api/types";
 import { forgetEverything } from "@/lib/security/keychain";
 import { meKeys } from "../me";
 import { staleTimes } from "../queryClient";
-import { endLocalSession } from "../sessions";
+import { endLocalSession, setSignedOutOnPurpose } from "../sessions";
 
 export const accountKeys = { all: ["account"] as const };
 
@@ -37,6 +37,7 @@ export function useDeleteAccount() {
   return useMutation({
     mutationFn: () => api.delete("/v1/account"),
     onSuccess: async () => {
+      setSignedOutOnPurpose(true);
       await forgetEverything();
       endLocalSession(client);
     },

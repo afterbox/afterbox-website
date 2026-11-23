@@ -13,7 +13,7 @@ import FormMessage, { Reveal } from "@/components/ui/FormMessage";
 import { PencilIcon } from "@/components/ui/icons";
 import { Link } from "@/components/ui/Links";
 import { errorCopy, isApiError } from "@/lib/api/errors";
-import { takeAfterSignIn } from "@/lib/afterSignIn";
+import { safePath, takeAfterSignIn, withNext } from "@/lib/afterSignIn";
 import { authHref, clock, isOffline, readMode, timings, type AuthMode } from "@/lib/auth";
 import { FLOW_CARD, transition } from "@/lib/motion";
 import { useStartEmail, useVerifyCode } from "@/store/auth";
@@ -28,9 +28,14 @@ const boxState: Partial<Record<Status, CodeInputState>> = {
   verified: "verified",
 };
 
-type VerifyScreenProps = { email: string; from: AuthMode };
+type VerifyScreenProps = {
+  email: string;
+  from: AuthMode;
+  /** `?next=` from /login: the page that sent them to sign in (a help request or approval link). */
+  after?: string | null;
+};
 
-export function VerifyScreen({ email, from }: VerifyScreenProps) {
+export function VerifyScreen({ email, from, after = null }: VerifyScreenProps) {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [lockLeft, setLockLeft] = useState(0);
@@ -41,7 +46,7 @@ export function VerifyScreen({ email, from }: VerifyScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const verify = useVerifyCode();
   const resendCode = useStartEmail();
-  const backHref = authHref(from, email);
+  const backHref = withNext(authHref(from, email), after);
 
   // New members start onboarding; returning ones go to Home, whose gate unlocks or resumes onboarding.
   const contentLeaving = useHandOff(status === "verified" ? next : null, timings.verifiedHold);
@@ -76,8 +81,10 @@ export function VerifyScreen({ email, from }: VerifyScreenProps) {
       { email, code: value },
       {
         onSuccess: ({ isNew }) => {
-          // A page that sent them here (an invite link) comes first.
-          setNext(takeAfterSignIn() ?? (isNew ? "/start" : "/home"));
+          // A page that sent them here (a help request, approval or invite link) comes first. Home's gate unlocks
+          // on the way (/unlock?next=…), so they land on it with the record open.
+          const remembered = takeAfterSignIn();
+          setNext(after ?? remembered ?? (isNew ? "/start" : "/home"));
           setStatus("verified");
         },
         onError: (error) => {
@@ -199,5 +206,5 @@ export function VerifyScreen({ email, from }: VerifyScreenProps) {
 
 export default function VerifyForm() {
   const params = useSearchParams();
-  return <VerifyScreen email={params.get("email") ?? ""} from={readMode(params.get("from"))} />;
+  return <VerifyScreen email={params.get("email") ?? ""} from={readMode(params.get("from"))} after={safePath(params.get("next"))} />;
 }

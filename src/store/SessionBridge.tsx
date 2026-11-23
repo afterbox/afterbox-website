@@ -7,9 +7,21 @@ import { useMe } from "./me";
 import { onSessionEvent } from "./queryClient";
 import { connectRealtime } from "./realtime/client";
 import { emitRealtime, invalidateFor, refetchAfterReconnect } from "./realtime";
-import { endLocalSession } from "./sessions";
+import { withNext } from "@/lib/afterSignIn";
+import { endLocalSession, signedOutOnPurpose } from "./sessions";
 
 const RECORD_PATHS = ["/home"];
+
+/**
+ * /login, carrying the page to come back to after signing in: the record page itself (a help request or approval
+ * link opened signed out), or the `next` an /unlock or /secure page was already carrying. Not after Log out.
+ */
+function loginHref() {
+  if (signedOutOnPurpose()) return "/login";
+  const { pathname, search } = window.location;
+  const next = RECORD_PATHS.some((path) => pathname.startsWith(path)) ? pathname + search : new URLSearchParams(search).get("next");
+  return withNext("/login", next);
+}
 
 /**
  * For signed-in areas: keeps the realtime connection open for the member, maps its events to the cache, and
@@ -45,8 +57,9 @@ export default function SessionBridge() {
     () =>
       onSessionEvent((event) => {
         if (event === "signed-out") {
+          const href = loginHref();
           endLocalSession(client);
-          router.replace("/login");
+          router.replace(href);
           return;
         }
         if (event === "unlock-required" && RECORD_PATHS.some((path) => window.location.pathname.startsWith(path))) {
@@ -65,8 +78,9 @@ export default function SessionBridge() {
   // A 401 that refresh couldn't fix arrives as an error on /me.
   useEffect(() => {
     if (me.error && "status" in me.error && me.error.status === 401 && pathname !== "/login") {
+      const href = loginHref();
       endLocalSession(client);
-      router.replace("/login");
+      router.replace(href);
     }
   }, [client, me.error, pathname, router]);
 

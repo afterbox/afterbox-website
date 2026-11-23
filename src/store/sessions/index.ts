@@ -14,11 +14,25 @@ export function endLocalSession(client: QueryClient) {
   setCurrentUser(null);
 }
 
+let leftOnPurpose = false;
+
+/**
+ * True after Log out or Delete account in this tab, until the next sign-in: /login then carries no `next`
+ * (a session that simply ended keeps the page it was on, to come back to after signing in).
+ */
+export const signedOutOnPurpose = () => leftOnPurpose;
+export function setSignedOutOnPurpose(value: boolean) {
+  leftOnPurpose = value;
+}
+
 /** Sign out. The device blob stays in this browser (behind the passkey); the next sign-in asks for the passkey. */
 export function useSignOut() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: () => api.post("/v1/auth/logout"),
+    mutationFn: () => {
+      setSignedOutOnPurpose(true);
+      return api.post("/v1/auth/logout");
+    },
     onSettled: () => endLocalSession(client),
   });
 }

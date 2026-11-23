@@ -5,6 +5,7 @@ import { API_URL, api } from "@/lib/api/client";
 import type { AuthMode, VerifyResult } from "@/lib/api/types";
 import { setCurrentUser } from "@/lib/security/keychain";
 import { meKeys } from "../me";
+import { setSignedOutOnPurpose } from "../sessions";
 
 export function useStartEmail() {
   return useMutation({
@@ -21,6 +22,7 @@ export function useVerifyCode() {
     onSuccess: ({ user }) => {
       // A different member may have used this tab before: start from an empty cache.
       client.clear();
+      setSignedOutOnPurpose(false);
       setCurrentUser(user.id);
       client.setQueryData(meKeys.all, user);
     },
