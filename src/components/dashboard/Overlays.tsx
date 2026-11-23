@@ -31,7 +31,7 @@ import { anyErrorCopy, isApiError } from "@/lib/api/errors";
 import type { CategoryId, DetailField, Frequency, Item, Relation, ScanField } from "@/lib/api/types";
 import { categoryInfo, fieldLabels, frequencies, guessCategory, pickerOrder, relations } from "@/lib/categories";
 import { formatList, todayIso } from "@/lib/dashboard/format";
-import { itemAmount, itemTitle } from "@/lib/dashboard/items";
+import { itemAmount, itemTitle, merchantName } from "@/lib/dashboard/items";
 import { pressable, transition } from "@/lib/motion";
 import { PASSKEY_ERROR, PasskeyError } from "@/lib/security/keychain";
 import { useMotionTokens } from "@/lib/useMotionTokens";
@@ -88,7 +88,7 @@ function SavedStep({ item, count, next, onNext, onDone }: { item: Item; count: n
         </Square>
         <div className="min-w-0 flex-1">
           <p className="text-[15px] text-ink">{category.label}</p>
-          <p className="mt-0.5 truncate text-[13px] text-ink-soft">{formatList([...new Set(tile?.providers ?? [itemTitle(item)])])}</p>
+          <p className="mt-0.5 truncate text-[13px] text-ink-soft">{formatList([...new Set((tile?.providers ?? [itemTitle(item)]).map(merchantName))])}</p>
         </div>
         <span className="text-[22px] tracking-[-0.02em] text-ink tabular-nums">
           <AnimatedNumber value={inCategory} from={Math.max(0, inCategory - 1)} delay={0.3} />

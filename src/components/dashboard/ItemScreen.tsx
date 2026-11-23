@@ -19,7 +19,7 @@ import { anyErrorCopy } from "@/lib/api/errors";
 import type { ItemView } from "@/lib/api/types";
 import { categoryInfo, fieldLabels } from "@/lib/categories";
 import { formatDate, formatDay, formatSince } from "@/lib/dashboard/format";
-import { itemAmount, needsDetails } from "@/lib/dashboard/items";
+import { itemAmount, merchantName, needsDetails } from "@/lib/dashboard/items";
 import { pressable } from "@/lib/motion";
 import { formatMoney } from "@/lib/money";
 import { useStartScan } from "@/store/documents";
@@ -170,7 +170,7 @@ function ItemDetails({ view }: { view: ItemView }) {
       {twin && (
         <p className="mb-7 flex items-center gap-2.5 text-[13px] text-warn">
           <FlagIcon size={14} className="flex-none" />
-          <span>You also pay {twin.provider ?? twin.name} for {twin.name.toLowerCase()}. If it’s the same thing, you only need one.</span>
+          <span>You also pay {twin.provider ? merchantName(twin.provider) : twin.name} for {twin.name.toLowerCase()}. If it’s the same thing, you only need one.</span>
         </p>
       )}
 

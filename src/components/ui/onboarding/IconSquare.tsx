@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { BankIcon, CardIcon, DocumentIcon, HomeIcon, LockIcon, ReceiptIcon, RepeatIcon, TrendIcon, UmbrellaIcon } from "@/components/ui/icons";
-import type { CategoryIcon } from "@/lib/api/types";
+import { BankIcon, CalendarRepeatIcon, CardIcon, DocumentIcon, HandshakeIcon, HomeIcon, LockIcon, ReceiptIcon, RepeatIcon, TrendIcon, UmbrellaIcon } from "@/components/ui/icons";
+import type { CategoryIcon, GroupIcon } from "@/lib/api/types";
 
 const sizes = { sm: "size-8", md: "size-[34px]", lg: "size-10" } as const;
 
@@ -36,10 +36,13 @@ const categoryIcons = {
   receipt: ReceiptIcon,
   bank: BankIcon,
   document: DocumentIcon,
+  // Group glyphs (lib/categories groups).
+  handshake: HandshakeIcon,
+  "calendar-repeat": CalendarRepeatIcon,
 } as const;
 
 /** An icon the frontend doesn't know yet shows the "Something else" document. */
-export function CategoryGlyph({ icon, size }: { icon: CategoryIcon | string; size: number }) {
-  const Icon = categoryIcons[icon as CategoryIcon] ?? DocumentIcon;
+export function CategoryGlyph({ icon, size }: { icon: CategoryIcon | GroupIcon | string; size: number }) {
+  const Icon = categoryIcons[icon as keyof typeof categoryIcons] ?? DocumentIcon;
   return <Icon size={size} />;
 }

@@ -13,6 +13,7 @@ import QuietLink from "@/components/ui/onboarding/QuietLink";
 import ScreenTitle, { ScreenLead } from "@/components/ui/onboarding/ScreenTitle";
 import { FindingListSkeleton } from "@/components/ui/onboarding/Skeletons";
 import { errorCopy } from "@/lib/api/errors";
+import { merchantName } from "@/lib/dashboard/items";
 import { duration } from "@/lib/motion";
 import { formatMoney } from "@/lib/money";
 import { planFor, usePlans } from "@/lib/onboarding/plans";
@@ -53,7 +54,7 @@ export default function CancelGuideScreen({ flagId, findingId }: { flagId: strin
     );
   }
 
-  const merchant = guide.data?.merchant ?? finding.provider ?? finding.name;
+  const merchant = guide.data?.merchant ?? (finding.provider ? merchantName(finding.provider) : finding.name);
 
   // Shows the check for a beat, then moves on.
   function cancelled() {

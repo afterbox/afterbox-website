@@ -4,7 +4,7 @@
  * to the "Something else" look rather than crashing (INTEGRATION.md "Bills").
  */
 
-import type { CategoryIcon, CategoryId, DetailField, Kind } from "@/lib/api/types";
+import type { CategoryIcon, CategoryId, DetailField, Group, GroupIcon, Kind } from "@/lib/api/types";
 
 export type CategoryInfo = {
   id: CategoryId;
@@ -40,6 +40,45 @@ export function categoryInfo(id: string): CategoryInfo {
 export const isCategoryId = (id: string): id is CategoryId => byId.has(id as CategoryId);
 
 export const categories = all;
+
+/* Worth-a-look groups (PATCH /v1/finds/:id/category and /v1/items/:id/category). The API never sends a group back. */
+
+export type GroupInfo = {
+  id: Group;
+  /** The categories it fits: a group sent with any other answers 400 VALIDATION. */
+  categories: CategoryId[];
+  label: string;
+  /** "2 union memberships" */
+  plural: string;
+  /** Its own glyph, else the category's. */
+  icon?: GroupIcon;
+};
+
+export const groups: GroupInfo[] = [
+  { id: "home-insurance", categories: ["insurance"], label: "Home insurance", plural: "home insurance policies" },
+  { id: "car-insurance", categories: ["insurance"], label: "Car insurance", plural: "car insurance policies" },
+  { id: "breakdown", categories: ["insurance", "subscriptions"], label: "Breakdown cover", plural: "breakdown covers" },
+  { id: "phone", categories: ["subscriptions"], label: "Phone plan", plural: "phone plans" },
+  { id: "broadband", categories: ["subscriptions"], label: "Broadband", plural: "broadband plans" },
+  { id: "streaming", categories: ["subscriptions"], label: "Streaming", plural: "streaming services" },
+  { id: "music", categories: ["subscriptions"], label: "Music", plural: "music services" },
+  { id: "cloud-storage", categories: ["subscriptions"], label: "Cloud storage", plural: "cloud storage plans" },
+  { id: "gym", categories: ["subscriptions"], label: "Gym", plural: "gym memberships" },
+  { id: "union", categories: ["subscriptions"], label: "Union membership", plural: "union memberships", icon: "handshake" },
+  { id: "yearly-renewal", categories: ["bills"], label: "Yearly renewal", plural: "yearly renewals", icon: "calendar-repeat" },
+  { id: "rental-income", categories: ["property"], label: "Rental income", plural: "rental incomes" },
+];
+
+const groupById = new Map(groups.map((group) => [group.id, group]));
+
+/** A group the frontend doesn't know yet is null: screens show the category alone. */
+export const groupInfo = (id: string | null | undefined): GroupInfo | null => (id ? (groupById.get(id as Group) ?? null) : null);
+
+/** The groups that fit a category, in the table's order. */
+export const groupsFor = (category: CategoryId) => groups.filter((group) => group.categories.includes(category));
+
+/** The group's glyph, or its category's when it has none of its own. */
+export const groupIcon = (group: GroupInfo): CategoryIcon | GroupIcon => group.icon ?? categoryInfo(group.categories[0]).icon;
 
 export const fieldLabels: Record<DetailField, string> = {
   policyNumber: "Policy number",

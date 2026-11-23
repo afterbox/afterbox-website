@@ -439,6 +439,31 @@ export function HelpIcon(props: IconProps) {
   );
 }
 
+/** The union group: a handshake. */
+export function HandshakeIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m11 17 2 2a1 1 0 1 0 3-3" />
+      <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4" />
+      <path d="m21 3 1 11h-2" />
+      <path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3" />
+      <path d="M3 4h8" />
+    </Icon>
+  );
+}
+
+/** The yearly-renewal group: a calendar renewing (a turning arrow at its corner). */
+export function CalendarRepeatIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M20.5 11.5v-5A2.5 2.5 0 0 0 18 4H6a2.5 2.5 0 0 0-2.5 2.5V18A2.5 2.5 0 0 0 6 20.5h5.5" />
+      <path d="M8 2.5v3M16 2.5v3M3.5 9h17" />
+      <path d="M21 17.5a3.5 3.5 0 1 1-1.1-2.6" />
+      <path d="M20.5 12.6v2.6h-2.6" />
+    </Icon>
+  );
+}
+
 export function ReceiptIcon(props: IconProps) {
   return (
     <Icon {...props}>

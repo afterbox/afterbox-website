@@ -36,7 +36,12 @@ export type Group =
   | "music"
   | "cloud-storage"
   | "gym"
+  | "union"
+  | "yearly-renewal"
   | "rental-income";
+
+/** Glyphs only a group uses (a group without one shows its category's). */
+export type GroupIcon = "handshake" | "calendar-repeat";
 
 /* Me */
 
