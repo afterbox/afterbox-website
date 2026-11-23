@@ -36,6 +36,7 @@ function Row({ item, index }: { item: Item; index: number }) {
         href={`/home/record/${item.category}/${item.id}`}
         name={`category-${item.id}`}
         monogram={item.monogram}
+        group={item.group}
         size="row"
         title={item.name}
         sub={itemAmount(item)}

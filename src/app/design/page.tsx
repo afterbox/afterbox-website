@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import GroupGlyph from "@/components/ui/GroupGlyph";
+import Monogram from "@/components/ui/onboarding/Monogram";
+import { groups } from "@/lib/categories";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
@@ -35,6 +38,30 @@ export default function DesignPage() {
         <a href="#" className="rounded-full bg-ink-deep px-6 py-3.5 font-semibold text-on-night hover:bg-ink-deep-hover">Start your record</a>
         <a href="#" className="rounded-full bg-ink px-6 py-3.5 font-semibold text-ground">Start your record</a>
         <span className="rounded-card bg-night p-3"><a href="#" className="inline-block rounded-full bg-on-night px-6 py-3.5 font-semibold text-ink">Start your record</a></span>
+      </section>
+
+      <section className="mt-16">
+        <p className="text-display-s">Groups</p>
+        <p className="mt-2 text-body-l text-ink-soft">A find or item&apos;s worth-a-look group: its glyph on the monogram, and its label.</p>
+        <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
+          {groups.map((group) => (
+            <li key={group.id} className="flex items-center gap-3.5">
+              <Monogram letters={group.label.charAt(0)} group={group.id} size="row" />
+              <span className="min-w-0">
+                <span className="flex items-center gap-1.5 text-[15px] text-ink">
+                  <GroupGlyph icon={group.icon} size={14} />
+                  {group.label}
+                </span>
+                <span className="block text-[13px] text-ink-soft">{group.id}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-6 flex items-end gap-4">
+          {(["sm", "row", "md", "lg", "xl"] as const).map((size) => (
+            <Monogram key={size} letters="B" group="charity" size={size} />
+          ))}
+        </div>
       </section>
 
       <section className="relative mt-16 h-80 overflow-hidden rounded-card bg-panel">

@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { expect, type BrowserContext, type CDPSession, type Page } from "@playwright/test";
 
 export const API = "http://localhost:8000";
@@ -8,9 +10,42 @@ export const API = "http://localhost:8000";
 const RUN = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 export const newEmail = (tag: string) => `delivered+e2e-${RUN}-${tag}@resend.dev`;
 
-/** Puts a test account on a plan through the backend's development-only script (it builds first: ~30 s). */
+/**
+ * Puts a test account on a plan through the backend's development-only script (it builds first: ~30 s). One run
+ * at a time across workers: each run's `nest build` empties the backend's dist/ while another may be importing
+ * from it (BACKEND_ISSUES #11).
+ */
 export function setPlan(email: string, plan: "free" | "standard" | "family") {
-  execFileSync("npm", ["--prefix", "../afterbox-backend", "run", "dev:plan", "--", email, plan], { stdio: "pipe", timeout: 120_000 });
+  withPlanLock(() =>
+    execFileSync("npm", ["--prefix", "../afterbox-backend", "run", "dev:plan", "--", email, plan], { stdio: "pipe", timeout: 120_000 }),
+  );
+}
+
+const PLAN_LOCK = join(tmpdir(), "afterbox-e2e-dev-plan.lock");
+
+/** A lock directory shared by the worker processes (mkdir is atomic); one left by a killed run expires. */
+function withPlanLock<T>(run: () => T): T {
+  const deadline = Date.now() + 240_000;
+  for (;;) {
+    try {
+      mkdirSync(PLAN_LOCK);
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      try {
+        if (Date.now() - statSync(PLAN_LOCK).mtimeMs > 150_000) rmSync(PLAN_LOCK, { recursive: true, force: true });
+      } catch {
+        // Released meanwhile.
+      }
+      if (Date.now() > deadline) throw new Error("dev:plan: another worker held the lock for 4 minutes");
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500);
+    }
+  }
+  try {
+    return run();
+  } finally {
+    rmSync(PLAN_LOCK, { recursive: true, force: true });
+  }
 }
 
 type DevEmail = { to: string; subject: string; text: string; links: string[]; codes: string[]; sentAt: string };

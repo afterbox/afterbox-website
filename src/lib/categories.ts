@@ -50,23 +50,35 @@ export type GroupInfo = {
   label: string;
   /** "2 union memberships" */
   plural: string;
-  /** Its own glyph, else the category's. */
-  icon?: GroupIcon;
+  icon: GroupIcon;
+  /** When a screen lists several. */
+  lead?: string;
+  /** Regular giving: never suggest cancelling it or what it would save. */
+  giving?: true;
 };
 
 export const groups: GroupInfo[] = [
-  { id: "home-insurance", categories: ["insurance"], label: "Home insurance", plural: "home insurance policies" },
-  { id: "car-insurance", categories: ["insurance"], label: "Car insurance", plural: "car insurance policies" },
-  { id: "breakdown", categories: ["insurance", "subscriptions"], label: "Breakdown cover", plural: "breakdown covers" },
-  { id: "phone", categories: ["subscriptions"], label: "Phone plan", plural: "phone plans" },
-  { id: "broadband", categories: ["subscriptions"], label: "Broadband", plural: "broadband plans" },
-  { id: "streaming", categories: ["subscriptions"], label: "Streaming", plural: "streaming services" },
-  { id: "music", categories: ["subscriptions"], label: "Music", plural: "music services" },
-  { id: "cloud-storage", categories: ["subscriptions"], label: "Cloud storage", plural: "cloud storage plans" },
-  { id: "gym", categories: ["subscriptions"], label: "Gym", plural: "gym memberships" },
+  { id: "home-insurance", categories: ["insurance"], label: "Home insurance", plural: "home insurance policies", icon: "home" },
+  { id: "car-insurance", categories: ["insurance"], label: "Car insurance", plural: "car insurance policies", icon: "car" },
+  { id: "breakdown", categories: ["insurance", "subscriptions"], label: "Breakdown cover", plural: "breakdown covers", icon: "wrench" },
+  { id: "phone", categories: ["subscriptions"], label: "Phone plan", plural: "phone plans", icon: "phone" },
+  { id: "broadband", categories: ["subscriptions"], label: "Broadband", plural: "broadband plans", icon: "wifi" },
+  { id: "streaming", categories: ["subscriptions"], label: "Streaming", plural: "streaming services", icon: "play" },
+  { id: "music", categories: ["subscriptions"], label: "Music", plural: "music services", icon: "music" },
+  { id: "cloud-storage", categories: ["subscriptions"], label: "Cloud storage", plural: "cloud storage plans", icon: "cloud" },
+  { id: "gym", categories: ["subscriptions"], label: "Gym", plural: "gym memberships", icon: "dumbbell" },
   { id: "union", categories: ["subscriptions"], label: "Union membership", plural: "union memberships", icon: "handshake" },
+  {
+    id: "charity",
+    categories: ["subscriptions"],
+    label: "Charity",
+    plural: "regular donations",
+    icon: "heart-hand",
+    lead: "Each goes to a charity you chose to support.",
+    giving: true,
+  },
   { id: "yearly-renewal", categories: ["bills"], label: "Yearly renewal", plural: "yearly renewals", icon: "calendar-repeat" },
-  { id: "rental-income", categories: ["property"], label: "Rental income", plural: "rental incomes" },
+  { id: "rental-income", categories: ["property"], label: "Rental income", plural: "rental incomes", icon: "home-key" },
 ];
 
 const groupById = new Map(groups.map((group) => [group.id, group]));
@@ -77,8 +89,11 @@ export const groupInfo = (id: string | null | undefined): GroupInfo | null => (i
 /** The groups that fit a category, in the table's order. */
 export const groupsFor = (category: CategoryId) => groups.filter((group) => group.categories.includes(category));
 
-/** The group's glyph, or its category's when it has none of its own. */
-export const groupIcon = (group: GroupInfo): CategoryIcon | GroupIcon => group.icon ?? categoryInfo(group.categories[0]).icon;
+/** The group's label where it adds something: not when the thing is already named after it ("Union membership"). */
+export function groupLabelFor(thing: { group?: string | null; name: string }): string | null {
+  const group = groupInfo(thing.group);
+  return group && group.label.toLowerCase() !== thing.name.trim().toLowerCase() ? group.label : null;
+}
 
 export const fieldLabels: Record<DetailField, string> = {
   policyNumber: "Policy number",

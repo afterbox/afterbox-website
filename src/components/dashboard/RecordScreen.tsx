@@ -105,6 +105,7 @@ function Record({ record, filter, onFilter }: { record: RecordView; filter: Reco
                           ? { onClick: () => open("review", { find: row.item.id }) }
                           : { href: `/home/record/${row.item.category}/${row.item.id}`, name: `record-${row.item.id}` })}
                         monogram={row.item.monogram}
+                        group={row.item.group}
                         title={itemTitle(row.item)}
                         sub={[row.item.provider ? row.item.name : null, itemAmount(row.item)].filter(Boolean).join(" · ") || null}
                         status={row.status}

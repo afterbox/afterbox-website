@@ -4,13 +4,11 @@ import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
 import {
   BankIcon,
-  CalendarRepeatIcon,
   CardIcon,
   CheckIcon,
   ChevronLeftIcon,
   ClockIcon,
   DocumentIcon,
-  HandshakeIcon,
   HomeIcon,
   LockIcon,
   ReceiptIcon,
@@ -21,7 +19,7 @@ import {
 import { Link } from "@/components/ui/Links";
 import Monogram from "@/components/ui/onboarding/Monogram";
 import { pressable, transition } from "@/lib/motion";
-import type { CategoryIcon, GroupIcon } from "@/lib/api/types";
+import type { CategoryIcon } from "@/lib/api/types";
 import { useMotionTokens } from "@/lib/useMotionTokens";
 
 const categoryIcons = {
@@ -34,14 +32,11 @@ const categoryIcons = {
   receipt: ReceiptIcon,
   bank: BankIcon,
   document: DocumentIcon,
-  // Group glyphs (lib/categories groups).
-  handshake: HandshakeIcon,
-  "calendar-repeat": CalendarRepeatIcon,
 } as const;
 
 /** An icon the frontend doesn't know yet shows the "Something else" document. */
-export function CategoryGlyph({ icon, size }: { icon: CategoryIcon | GroupIcon | string; size: number }) {
-  const Icon = categoryIcons[icon as keyof typeof categoryIcons] ?? DocumentIcon;
+export function CategoryGlyph({ icon, size }: { icon: CategoryIcon | string; size: number }) {
+  const Icon = categoryIcons[icon as CategoryIcon] ?? DocumentIcon;
   return <Icon size={size} />;
 }
 

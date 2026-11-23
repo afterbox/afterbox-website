@@ -439,6 +439,102 @@ export function HelpIcon(props: IconProps) {
   );
 }
 
+/** The car-insurance group. */
+export function CarIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 11l1.6-4.2A2 2 0 0 1 8.5 5.5h7a2 2 0 0 1 1.9 1.3L19 11" />
+      <rect x="3" y="11" width="18" height="6" rx="2" />
+      <path d="M6 17v2.5M18 17v2.5M7 14h.01M17 14h.01" />
+    </Icon>
+  );
+}
+
+/** The breakdown group: roadside repair. */
+export function WrenchIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </Icon>
+  );
+}
+
+/** The broadband group. */
+export function WifiIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M2.5 9a14 14 0 0 1 19 0" />
+      <path d="M5.5 12.9a10 10 0 0 1 13 0" />
+      <path d="M8.5 16.5a5 5 0 0 1 7 0" />
+      <path d="M12 20h.01" />
+    </Icon>
+  );
+}
+
+/** The streaming group: a screen playing. */
+export function PlayIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="2.5" y="4" width="19" height="13.5" rx="2.5" />
+      <path d="M8.5 21h7" />
+      <path d="M10.5 8.2v5.1l4.2-2.55z" />
+    </Icon>
+  );
+}
+
+/** The music group. */
+export function MusicIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M9 18V5.5l11-2v12.5" />
+      <circle cx="6.5" cy="18" r="2.5" />
+      <circle cx="17.5" cy="16" r="2.5" />
+    </Icon>
+  );
+}
+
+/** The cloud-storage group. */
+export function CloudIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+    </Icon>
+  );
+}
+
+/** The gym group. */
+export function DumbbellIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6.5 6.5v11M17.5 6.5v11M3.5 9.5v5M20.5 9.5v5M6.5 12h11" />
+    </Icon>
+  );
+}
+
+/** The charity group: a heart in a hand. */
+export function HeartHandIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16" />
+      <path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9" />
+      <path d="m2 15 6 6" />
+      <path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z" />
+    </Icon>
+  );
+}
+
+/** The rental-income group: a home with a keyhole (let out). */
+export function HomeKeyIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 11l8-6.5 8 6.5" />
+      <path d="M6 10v9.5h12V10" />
+      <circle cx="12" cy="13" r="1.8" />
+      <path d="M12 14.8v2.7" />
+    </Icon>
+  );
+}
+
 /** The union group: a handshake. */
 export function HandshakeIcon(props: IconProps) {
   return (

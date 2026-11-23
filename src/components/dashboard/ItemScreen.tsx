@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { CameraIcon, CheckIcon, ChevronRightIcon, ClockIcon, DocumentIcon, FlagIcon, PencilIcon, TrashIcon } from "@/components/ui/icons";
+import GroupGlyph from "@/components/ui/GroupGlyph";
 import Monogram from "@/components/ui/onboarding/Monogram";
 import { useCollapse } from "@/components/ui/onboarding/Motion";
 import { BackLink, PageTitle, SectionLabel, Square } from "@/components/ui/dashboard/bits";
@@ -17,7 +18,7 @@ import { ItemSkeleton } from "@/components/ui/dashboard/Skeleton";
 import { showToast } from "@/components/ui/dashboard/toast";
 import { anyErrorCopy } from "@/lib/api/errors";
 import type { ItemView } from "@/lib/api/types";
-import { categoryInfo, fieldLabels } from "@/lib/categories";
+import { categoryInfo, fieldLabels, groupInfo, groupLabelFor } from "@/lib/categories";
 import { formatDate, formatDay, formatSince } from "@/lib/dashboard/format";
 import { itemAmount, merchantName, needsDetails } from "@/lib/dashboard/items";
 import { pressable } from "@/lib/motion";
@@ -56,6 +57,11 @@ function ItemDetails({ view }: { view: ItemView }) {
   });
   const collapse = useCollapse();
   const category = categoryInfo(item.category);
+  const group = groupInfo(item.group);
+  // Named under the provider unless the item is already called that ("Union membership").
+  const groupLabel = groupLabelFor(item);
+  // A regular donation: say what it is, never what stopping it would save.
+  const giving = group?.giving === true;
   const who = person?.name ? person.name.split(" ")[0] : "they";
   const missing = needsDetails(item);
   const what = fields.length > 0 ? `the ${fieldLabels[fields[0]].toLowerCase()} or document` : "a document";
@@ -85,12 +91,18 @@ function ItemDetails({ view }: { view: ItemView }) {
       {picker.input}
       <BackLink href={`/home/record/${item.category}`} name="item-back" label={category.label} className="max-sm:hidden" />
       <div className="mb-6 flex items-center gap-4">
-        <Monogram letters={item.monogram} size="lg" />
+        <Monogram letters={item.monogram} group={item.group} size="lg" />
         <div className="min-w-0">
           <PageTitle size="item" className="mb-1">
             {item.name}
           </PageTitle>
           <p className="text-sm/normal text-ink-soft">{item.provider ?? category.label}</p>
+          {group && groupLabel && (
+            <p className="mt-1 flex items-center gap-1.5 text-[13px]/normal text-ink-soft">
+              <GroupGlyph icon={group.icon} size={14} />
+              {groupLabel}
+            </p>
+          )}
         </div>
       </div>
 
@@ -109,7 +121,7 @@ function ItemDetails({ view }: { view: ItemView }) {
       {item.cancelled && (
         <p className="mb-7 flex items-center gap-2.5 rounded-panel border border-line bg-positive/6 px-4 py-3.5 text-sm/normal text-ink">
           <CheckIcon size={17} className="flex-none text-positive" />
-          <span className="flex-1">Marked as cancelled. We’ll check it doesn’t charge you again.</span>
+          <span className="flex-1">{giving ? "Marked as stopped. We’ll check it isn’t taken again." : "Marked as cancelled. We’ll check it doesn’t charge you again."}</span>
         </p>
       )}
 
@@ -182,11 +194,12 @@ function ItemDetails({ view }: { view: ItemView }) {
         {item.kind === "pay" && !item.cancelled && (
           <ManageRow
             icon={<CheckIcon size={18} />}
-            label="I’ve cancelled it"
+            label={giving ? "I’ve stopped this donation" : "I’ve cancelled it"}
             busy={cancelled.isPending}
             onClick={() =>
               cancelled.mutate(item.id, {
-                onSuccess: ({ monthlySaving }) => showToast(monthlySaving.minor > 0 ? `${formatMoney(monthlySaving)} a month saved` : "Marked as cancelled"),
+                onSuccess: ({ monthlySaving }) =>
+                  showToast(giving ? "Marked as stopped" : monthlySaving.minor > 0 ? `${formatMoney(monthlySaving)} a month saved` : "Marked as cancelled"),
               })
             }
           />

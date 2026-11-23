@@ -37,11 +37,25 @@ export type Group =
   | "cloud-storage"
   | "gym"
   | "union"
+  | "charity"
   | "yearly-renewal"
   | "rental-income";
 
-/** Glyphs only a group uses (a group without one shows its category's). */
-export type GroupIcon = "handshake" | "calendar-repeat";
+/** Each group's glyph (components/ui/GroupGlyph). */
+export type GroupIcon =
+  | "home"
+  | "car"
+  | "wrench"
+  | "phone"
+  | "wifi"
+  | "play"
+  | "music"
+  | "cloud"
+  | "dumbbell"
+  | "handshake"
+  | "heart-hand"
+  | "calendar-repeat"
+  | "home-key";
 
 /* Me */
 
@@ -193,6 +207,8 @@ export type Finding = {
   guide: string | null;
   cancelled: boolean;
   note: string | null;
+  /** The worth-a-look group, or null. A value the frontend doesn't know shows nothing (groupInfo). */
+  group: Group | null;
 };
 
 export type FoundCategoryView = { category: CategoryId; findings: Finding[] };
@@ -224,6 +240,8 @@ export type Item = {
   nextPayment: string | null;
   short?: string;
   addedAt: string;
+  /** The worth-a-look group, or null (typed-in items, nothing fits). */
+  group: Group | null;
 };
 
 export type CategoryMeta = { id: CategoryId; label: string; icon: CategoryIcon; kind: Kind; fields: DetailField[] };

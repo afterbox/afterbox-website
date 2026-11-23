@@ -41,7 +41,7 @@ export default function FindingRow({ finding, title, detail, dimmed = false, not
         transition={transition("base")}
         className="flex min-w-0 flex-1 items-center gap-3"
       >
-        <Monogram letters={finding.monogram} />
+        <Monogram letters={finding.monogram} group={finding.group} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] text-ink">{title}</p>
           <p className="mt-0.5 truncate text-[13px] text-ink-soft">{detail}</p>

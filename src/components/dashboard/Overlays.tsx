@@ -14,6 +14,7 @@ import { DeleteAccountOverlay } from "@/components/dashboard/AccountOverlays";
 import { DeleteItemOverlay, DocumentOverlay, ItemCategoryOverlay } from "@/components/dashboard/ItemOverlays";
 import WhereGrid from "@/components/ui/dashboard/WhereGrid";
 import Button from "@/components/ui/Button";
+import GroupGlyph from "@/components/ui/GroupGlyph";
 import { BanIcon, CameraIcon, CheckIcon, ChevronRightIcon, KeyIcon, MailIcon, PencilIcon, PeopleIcon, PersonAddIcon, SparkleIcon } from "@/components/ui/icons";
 import Monogram from "@/components/ui/onboarding/Monogram";
 import { AnimatedNumber, Collapse } from "@/components/ui/onboarding/Motion";
@@ -29,7 +30,7 @@ import { useMobile } from "@/components/ui/dashboard/useMedia";
 import { useMe } from "@/store/me";
 import { anyErrorCopy, isApiError } from "@/lib/api/errors";
 import type { CategoryId, DetailField, Frequency, Item, Relation, ScanField } from "@/lib/api/types";
-import { categoryInfo, fieldLabels, frequencies, guessCategory, pickerOrder, relations } from "@/lib/categories";
+import { categoryInfo, fieldLabels, frequencies, groupInfo, groupLabelFor, guessCategory, pickerOrder, relations } from "@/lib/categories";
 import { formatList, todayIso } from "@/lib/dashboard/format";
 import { itemAmount, itemTitle, merchantName } from "@/lib/dashboard/items";
 import { pressable, transition } from "@/lib/motion";
@@ -144,7 +145,7 @@ function FindsOverlay() {
       <ul className="border-t border-line">
         {list.map((find, index) => (
           <li key={find.id} className={`flex items-center gap-3.5 py-4 ${index < list.length - 1 ? "border-b border-line" : ""}`}>
-            <Monogram letters={find.monogram} />
+            <Monogram letters={find.monogram} group={find.group} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[15px] text-ink">{find.name}</p>
               <p className="mt-0.5 truncate text-[13px] text-ink-soft">{[find.provider, itemAmount(find)].filter(Boolean).join(" · ")}</p>
@@ -265,6 +266,8 @@ function ReviewOverlay() {
   const position = Math.min(reviewed, Math.max(count - 1, 0));
   const where = layer === "where";
   const category = shown ? categoryInfo(shown.category) : null;
+  // Named beside the category unless the find is already called that ("Union membership").
+  const shownGroup = shown && groupLabelFor(shown) ? groupInfo(shown.group) : null;
 
   const whereStep = shown && (
     <div>
@@ -300,7 +303,7 @@ function ReviewOverlay() {
               </div>
             )}
             <div className="mb-5 flex justify-center">
-              <Monogram letters={shown.monogram} size="xl" />
+              <Monogram letters={shown.monogram} group={shown.group} size="xl" />
             </div>
             <div className="text-center">
               <p className="mb-2.5 text-[13px]/normal text-ink-soft">{bank ? `New · found in ${bank}` : "New"}</p>
@@ -309,6 +312,13 @@ function ReviewOverlay() {
               <p className="mb-8 flex items-center justify-center gap-1.5 text-[13px] text-ink-soft">
                 <CategoryGlyph icon={category!.icon} size={14} />
                 {category!.label}
+                {shownGroup && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <GroupGlyph icon={shownGroup.icon} size={14} />
+                    {shownGroup.label}
+                  </>
+                )}
                 <span aria-hidden="true">·</span>
                 <button type="button" onClick={() => openLayer("where")} disabled={busy} className={`cursor-pointer font-semibold text-ink-soft underline-offset-3 hover:text-ink hover:underline ${pressable}`}>
                   Not right? Change category

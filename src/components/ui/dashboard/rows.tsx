@@ -15,6 +15,7 @@ export function ItemRow({
   name,
   onClick,
   monogram,
+  group = null,
   size = "sm",
   title,
   sub,
@@ -24,6 +25,8 @@ export function ItemRow({
   name?: string;
   onClick?: () => void;
   monogram: string;
+  /** The item's worth-a-look group: its glyph on the monogram. */
+  group?: string | null;
   size?: "sm" | "row";
   title: string;
   sub: string | null;
@@ -31,7 +34,7 @@ export function ItemRow({
 }) {
   const body = (
     <>
-      <Monogram letters={monogram} size={size} />
+      <Monogram letters={monogram} group={group} size={size} />
       <span className="block min-w-0 flex-1">
         <span className="block truncate text-[15px] text-ink group-hover:text-ink-deep">{title}</span>
         {sub && <span className="mt-0.5 block text-[13px] text-ink-soft">{sub}</span>}

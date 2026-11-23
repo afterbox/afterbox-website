@@ -73,7 +73,7 @@ export default function CancelGuideScreen({ flagId, findingId }: { flagId: strin
         {position + 1} of {sequence.length}
       </p>
       <div className="mb-5 flex justify-center">
-        <Monogram letters={finding.monogram} size="lg" />
+        <Monogram letters={finding.monogram} group={finding.group} size="lg" />
       </div>
       <ScreenTitle className="mb-2">Cancel {merchant}</ScreenTitle>
       {finding.monthly && (
