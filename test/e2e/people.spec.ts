@@ -1,16 +1,33 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { addVirtualAuthenticator, apiFromPage, enterCode, newEmail, newLockedMember, requestCode, setPlan, waitForEmail, watchConsole } from "./helpers";
 
-test("inviting on the free plan says a trusted person comes with a paid plan", async ({ page }) => {
+/**
+ * A new member's first invite. On the free plan it says a trusted person comes with a paid plan. While the backend
+ * runs in demo mode (DEMO_DATA: every member is on Standard, `/v1/me` has `demo: true`) there's no plan: the invite
+ * goes through, nothing mentions a plan or the Family plan, and the account shows a "Demo" badge.
+ */
+test("inviting on the free plan says a trusted person comes with a paid plan (in demo mode: no plan copy, a Demo badge)", async ({ page }) => {
   const consoleWatch = watchConsole(page);
   await newLockedMember(page, "free-invite");
+  const demo = (await apiFromPage<{ demo?: boolean }>(page, "/v1/me")).body.demo === true;
   await page.goto("/home/people");
+  if (demo) {
+    await expect(page.getByRole("link", { name: "Settings, demo account" }).filter({ visible: true }).first()).toBeVisible();
+    await expect(page.getByText("Family plan")).toHaveCount(0);
+  }
   await page.getByRole("button", { name: "Choose someone" }).click();
   await page.getByLabel("Name").fill("Ada Lovelace");
   await page.getByLabel("Email").fill(newEmail("ada-free"));
+  if (demo) await expect(page.getByText(/Family plan/)).toHaveCount(0);
   await page.getByRole("button", { name: "Send invite" }).click();
-  await expect(page.getByText("Choosing a trusted person comes with a paid plan.")).toBeVisible();
-  expect((await apiFromPage<{ people: unknown[] }>(page, "/v1/people")).body.people).toHaveLength(0);
+  if (demo) {
+    await expect(page.getByRole("heading", { name: "Invite sent to Ada" })).toBeVisible();
+    await expect(page.getByText(/plan|upgrade/i)).toHaveCount(0);
+    expect((await apiFromPage<{ people: unknown[] }>(page, "/v1/people")).body.people).toHaveLength(1);
+  } else {
+    await expect(page.getByText("Choosing a trusted person comes with a paid plan.")).toBeVisible();
+    expect((await apiFromPage<{ people: unknown[] }>(page, "/v1/people")).body.people).toHaveLength(0);
+  }
   expect(consoleWatch.cspViolations()).toEqual([]);
 });
 
@@ -26,8 +43,20 @@ async function memberWithTrustedPerson(page: Page, browser: Browser, tag: string
   await page.getByRole("button", { name: "Choose someone" }).click();
   await page.getByLabel("Name").fill("Ada Lovelace");
   await page.getByLabel("Email").fill(adaEmail);
+  // "They are your": the design system's select, chosen with the keyboard.
+  const relation = page.getByRole("combobox", { name: "They are your" });
+  await relation.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("listbox", { name: "They are your" })).toBeVisible();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("listbox")).toHaveCount(0);
+  const chosen = (await relation.textContent())?.trim();
+  expect(chosen).toBeTruthy();
+  expect(chosen).not.toBe("Partner");
   await page.getByRole("button", { name: "Send invite" }).click();
   await expect(page.getByRole("heading", { name: "Invite sent to Ada" })).toBeVisible();
+  expect((await apiFromPage<{ people: { relation: string }[] }>(page, "/v1/people")).body.people[0]?.relation).toBe(chosen);
   const invite = await waitForEmail(adaEmail, { match: (mail) => mail.links.some((link) => link.includes("/invite/")) });
   const link = new URL(invite.links.find((candidate) => candidate.includes("/invite/"))!);
 

@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode 
 import Button from "@/components/ui/Button";
 import FormMessage from "@/components/ui/FormMessage";
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon } from "@/components/ui/icons";
+import Select, { type SelectOption } from "@/components/ui/Select";
 import TextField, { fieldClasses } from "@/components/ui/TextField";
 import { formatDate, formatMoneyTyping, parseTypedMinor, toIso, todayIso, typedFromMinor } from "@/lib/dashboard/format";
 import { currencySymbol } from "@/lib/money";
@@ -72,45 +73,10 @@ export function MoneyField({
   );
 }
 
-/* A native select dressed as a field (the phone's own picker is the best one). */
+/* The select: the design system's own list (keyboard and screen-reader accessible), see ui/Select. */
 
-export function SelectField({
-  label,
-  value,
-  onChange,
-  options,
-  disabled,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
-  disabled?: boolean;
-}) {
-  const id = useId();
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1.5 block text-[13px] font-semibold text-ink">
-        {label}
-      </label>
-      <div className="relative has-disabled:opacity-50">
-        <select
-          id={id}
-          value={value}
-          disabled={disabled}
-          onChange={(event) => onChange(event.target.value)}
-          className={`${fieldClasses()} cursor-pointer appearance-none pr-11`}
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDownIcon size={16} className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-ink-soft/70" />
-      </div>
-    </div>
-  );
+export function SelectField(props: { label: string; value: string; onChange: (value: string) => void; options: SelectOption[]; disabled?: boolean }) {
+  return <Select {...props} />;
 }
 
 /* The calendar (30). A grid you can move around with the arrow keys. */

@@ -1,3 +1,4 @@
+import { onlineManager } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, configureClient, refreshSession } from "@/lib/api/client";
 import { ApiError, UnlockRequiredError, errorCopy, retryAfterText } from "@/lib/api/errors";
@@ -92,7 +93,8 @@ describe("error mapping", () => {
     expect(errorCopy(new ApiError(504, "SCAN_FAILED", "x"))).toBe("That took too long. Try again.");
     expect(errorCopy(new ApiError(422, "SCAN_FAILED", "x"))).toBe("We couldn’t read this one. Type it in instead?");
     expect(errorCopy(new ApiError(409, "CONFLICT", "Already answered."))).toBe("Already answered.");
-    expect(errorCopy(new ApiError(503, "SERVICE_UNAVAILABLE", "x"))).toBe("Something’s not answering. Try again in a minute.");
+    expect(errorCopy(new ApiError(503, "SERVICE_UNAVAILABLE", "x"))).toBe("Can’t reach afterbox right now. Try again in a moment.");
+    expect(errorCopy(new ApiError(500, "INTERNAL", "x"))).toBe("Can’t reach afterbox right now. Try again in a moment.");
     expect(errorCopy(new Error("boom"))).toBe("Something went wrong. Try again.");
     expect(retryAfterText(599)).toBe("Try again in 10 minutes.");
     expect(retryAfterText(30)).toBe("Try again in 30 seconds.");
@@ -269,6 +271,89 @@ describe("429: respect retryAfter", () => {
     );
     await expect(api.post("/v1/auth/email/start", {})).rejects.toMatchObject({ code: "RATE_LIMITED" });
     expect(calls).toBe(1);
+  });
+});
+
+describe("a refresh that can't reach afterbox keeps the session (only a 401 from refresh signs out)", () => {
+  const UNREACHABLE = "Can’t reach afterbox right now. Try again in a moment.";
+  const expired = () => http.get(url("/v1/home"), () => apiError(401, "UNAUTHENTICATED"));
+
+  afterEach(() => {
+    onlineManager.setOnline(true);
+    configureClient({ getTimeoutMs: 20_000 });
+  });
+
+  it("a 401 from refresh signs out", async () => {
+    server.use(expired(), http.post(url("/v1/auth/refresh"), () => apiError(401, "UNAUTHENTICATED")));
+    const error = await api.get("/v1/home").catch((caught: unknown) => caught);
+    expect(error).toMatchObject({ status: 401 });
+    expect(handlers.signedOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("a fetch error on refresh keeps the session and says afterbox can't be reached", async () => {
+    server.use(expired(), http.post(url("/v1/auth/refresh"), () => HttpResponse.error()));
+    const error = await api.get("/v1/home").catch((caught: unknown) => caught);
+    expect(error).toMatchObject({ status: 0, code: "NETWORK" });
+    expect(errorCopy(error)).toBe(UNREACHABLE);
+    expect(handlers.signedOut).not.toHaveBeenCalled();
+    await expect(refreshSession()).resolves.toBe(false);
+    expect(handlers.signedOut).not.toHaveBeenCalled();
+  });
+
+  it("a 5xx from refresh keeps the session and says afterbox can't be reached", async () => {
+    for (const status of [500, 502, 503]) {
+      server.use(expired(), http.post(url("/v1/auth/refresh"), () => new HttpResponse("<html>down</html>", { status })));
+      const error = await api.get("/v1/home").catch((caught: unknown) => caught);
+      expect(error).toMatchObject({ status });
+      expect(errorCopy(error)).toBe(UNREACHABLE);
+    }
+    expect(handlers.signedOut).not.toHaveBeenCalled();
+  });
+
+  it("a refresh that times out keeps the session", async () => {
+    configureClient({ getTimeoutMs: 100 });
+    server.use(
+      http.post(url("/v1/home"), () => apiError(401, "UNAUTHENTICATED")),
+      http.post(url("/v1/auth/refresh"), () => new Promise<never>(() => {})),
+    );
+    const error = await api.post("/v1/home").catch((caught: unknown) => caught);
+    expect(error).toMatchObject({ status: 0, code: "NETWORK" });
+    expect(errorCopy(error)).toBe(UNREACHABLE);
+    expect(handlers.signedOut).not.toHaveBeenCalled();
+  });
+
+  it("tries the refresh again on the next request, and carries on once it works", async () => {
+    let up = false;
+    let refreshed = false;
+    const refresh = vi.fn(() => {
+      if (!up) return new HttpResponse(null, { status: 503 });
+      refreshed = true;
+      return new HttpResponse(null, { status: 204 });
+    });
+    server.use(
+      http.get(url("/v1/home"), () => (refreshed ? json({ ok: true }) : apiError(401, "UNAUTHENTICATED"))),
+      http.post(url("/v1/auth/refresh"), refresh),
+    );
+    await expect(api.get("/v1/home")).rejects.toMatchObject({ status: 503 });
+    up = true;
+    await expect(api.get("/v1/home")).resolves.toEqual({ ok: true });
+    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(handlers.signedOut).not.toHaveBeenCalled();
+  });
+
+  it("tries the refresh again when the connection comes back", async () => {
+    const refresh = vi.fn(() => HttpResponse.error());
+    server.use(expired(), http.post(url("/v1/auth/refresh"), refresh));
+    await expect(api.get("/v1/home")).rejects.toMatchObject({ code: "NETWORK" });
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    // The connection drops, then comes back: the refresh runs again by itself, with no request asking.
+    refresh.mockImplementation(() => new HttpResponse(null, { status: 204 }));
+    onlineManager.setOnline(false);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    onlineManager.setOnline(true);
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(2));
+    expect(handlers.signedOut).not.toHaveBeenCalled();
   });
 });
 

@@ -40,3 +40,20 @@ export function invalidateFound(client: QueryClient) {
   client.invalidateQueries({ queryKey: recordKeys.found });
   client.invalidateQueries({ queryKey: recordKeys.flags });
 }
+
+/**
+ * After the record is locked (POST /v1/keys/setup re-seals the finds and turns "Add all" into items in the request
+ * itself) or re-sealed by the worker (`record.updated`): Home, the record, the finds and the found screens all moved.
+ * Inactive queries are refetched too, so Home has its items before the member gets there.
+ */
+export function invalidateAfterReseal(client: QueryClient) {
+  const all = { refetchType: "all" as const };
+  return Promise.all([
+    client.invalidateQueries({ queryKey: recordKeys.home, ...all }, { cancelRefetch: false }),
+    client.invalidateQueries({ queryKey: recordKeys.record, ...all }),
+    client.invalidateQueries({ queryKey: recordKeys.items, ...all }),
+    client.invalidateQueries({ queryKey: recordKeys.finds, ...all }),
+    client.invalidateQueries({ queryKey: recordKeys.found, ...all }),
+    client.invalidateQueries({ queryKey: recordKeys.flags, ...all }),
+  ]);
+}

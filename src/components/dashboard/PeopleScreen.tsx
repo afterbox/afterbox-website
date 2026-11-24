@@ -15,6 +15,7 @@ import { PeopleSkeleton } from "@/components/ui/dashboard/Skeleton";
 import { showToast } from "@/components/ui/dashboard/toast";
 import { useMobile } from "@/components/ui/dashboard/useMedia";
 import { anyErrorCopy } from "@/lib/api/errors";
+import { useIsDemo } from "@/store/me";
 import type { PeopleList, Person } from "@/lib/api/types";
 import { pressable, transition } from "@/lib/motion";
 import { PASSKEY_ERROR, PasskeyError } from "@/lib/security/keychain";
@@ -215,6 +216,7 @@ function PersonRow({ person }: { person: Person }) {
 }
 
 function People({ list }: { list: PeopleList }) {
+  const demo = useIsDemo();
   // Trusted people here; a Family owner's family invitations belong to the family screen (billing work).
   const people = list.people.filter((person) => person.role === "trusted");
   const { open } = useLayers();
@@ -241,17 +243,19 @@ function People({ list }: { list: PeopleList }) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="h-7" />
-      <div className="flex items-center gap-3.5 rounded-panel border border-dashed border-line p-4 sm:px-5 sm:py-[18px]">
-        <Square size={36} tone="ground" className="sm:size-10">
-          <PeopleIcon size={18} className="sm:size-5" />
-        </Square>
-        <div className="min-w-0 flex-1">
-          <p className="text-[15px] text-ink">Family plan</p>
-          <p className="mt-0.5 text-[13px] text-ink-soft">Add more people, and share your record with them now.</p>
+      {/* The Family plan teaser is an upgrade prompt: not in the demo, where plans are off. */}
+      {!demo && (
+        <div className="mt-7 flex items-center gap-3.5 rounded-panel border border-dashed border-line p-4 sm:px-5 sm:py-[18px]">
+          <Square size={36} tone="ground" className="sm:size-10">
+            <PeopleIcon size={18} className="sm:size-5" />
+          </Square>
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] text-ink">Family plan</p>
+            <p className="mt-0.5 text-[13px] text-ink-soft">Add more people, and share your record with them now.</p>
+          </div>
+          <Pill tone="soonGround">Soon</Pill>
         </div>
-        <Pill tone="soonGround">Soon</Pill>
-      </div>
+      )}
     </Page>
   );
 }

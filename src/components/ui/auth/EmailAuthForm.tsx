@@ -10,8 +10,8 @@ import { MailIcon } from "@/components/ui/icons";
 import { Link } from "@/components/ui/Links";
 import TextField from "@/components/ui/TextField";
 import { rememberAfterSignIn, withNext } from "@/lib/afterSignIn";
-import { errorCopy, hasCode } from "@/lib/api/errors";
-import { authHref, isOffline, isValidEmail, verifyHref, type AuthMode } from "@/lib/auth";
+import { errorCopy, isOfflineError } from "@/lib/api/errors";
+import { authHref, isValidEmail, verifyHref, type AuthMode } from "@/lib/auth";
 import { transition } from "@/lib/motion";
 import { googleStartUrl, useStartEmail } from "@/store/auth";
 import AuthCard from "./AuthCard";
@@ -88,10 +88,6 @@ export default function EmailAuthForm({ mode, initialEmail, googleFailed = false
       emailRef.current?.focus();
       return;
     }
-    if (isOffline()) {
-      setProblem({ kind: "offline" });
-      return;
-    }
     setProblem(null);
     start.mutate(
       { email, mode },
@@ -102,7 +98,8 @@ export default function EmailAuthForm({ mode, initialEmail, googleFailed = false
           router.push(withNext(verifyHref(mode, email), next));
         },
         onError: (error) => {
-          if (hasCode(error, "NETWORK")) setProblem({ kind: "offline" });
+          // "Offline" only while the browser says so; a timeout or blocked request reads "Can't reach afterbox".
+          if (isOfflineError(error)) setProblem({ kind: "offline" });
           else setProblem({ kind: "api", message: errorCopy(error) });
         },
       },
@@ -111,10 +108,6 @@ export default function EmailAuthForm({ mode, initialEmail, googleFailed = false
 
   function handleGoogle() {
     if (isBusy) return;
-    if (isOffline()) {
-      setProblem({ kind: "offline" });
-      return;
-    }
     setProblem(null);
     setGoogle(true);
     // Google comes back to /home or /start, without our query: the page to return to waits in this tab.

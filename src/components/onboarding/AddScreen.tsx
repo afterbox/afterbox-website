@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Button from "@/components/ui/Button";
 import FormMessage from "@/components/ui/FormMessage";
-import { ChevronDownIcon, GlobeIcon } from "@/components/ui/icons";
+import { GlobeIcon } from "@/components/ui/icons";
 import IconBadge, { BADGE_ICON } from "@/components/ui/onboarding/IconBadge";
 import { useReveal } from "@/components/ui/onboarding/Motion";
 import OnboardingCard from "@/components/ui/onboarding/OnboardingCard";
 import ScreenTitle, { ScreenLead } from "@/components/ui/onboarding/ScreenTitle";
+import Select from "@/components/ui/Select";
 import { Sk } from "@/components/ui/dashboard/Skeleton";
 import { errorCopy } from "@/lib/api/errors";
 import { stagger } from "@/lib/motion";
@@ -21,7 +22,7 @@ const DEFAULT_COUNTRY = "NG";
 /**
  * 12: not in the UK. The list is the backend's (GET /v1/meta/countries), so it matches what
  * POST /v1/onboarding/country accepts; choosing one sets the member's home currency.
- * A native select sits invisibly over the field, so it keeps the platform picker.
+ * The country is picked with the design system's select (ui/Select).
  */
 export default function AddScreen() {
   const router = useRouter();
@@ -44,28 +45,15 @@ export default function AddScreen() {
       {countries.isPending ? (
         <Sk className="mb-6 h-12 w-full rounded-field sm:h-[52px]" />
       ) : (
-        <motion.label
-          {...reveal.rise(stagger.base)}
-          className="relative mb-6 flex h-12 items-center justify-between rounded-field border border-line bg-ground px-4 text-[15px] text-ink transition-[border-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--motion-ease)] has-focus-visible:border-ink-deep has-focus-visible:ring-3 has-focus-visible:ring-ink-deep/14 sm:h-[52px]"
-        >
-          <span id="where-you-bank">Where you bank</span>
-          <span aria-hidden="true" className="flex items-center gap-1.5">
-            {name}
-            <ChevronDownIcon size={16} className="text-ink-soft/70" />
-          </span>
-          <select
-            aria-labelledby="where-you-bank"
+        <motion.div {...reveal.rise(stagger.base)} className="mb-6">
+          <Select
+            look="inline"
+            label="Where you bank"
             value={code ?? ""}
-            onChange={(event) => setChosen(event.target.value)}
-            className="absolute inset-0 cursor-pointer appearance-none opacity-0"
-          >
-            {abroad.map((country) => (
-              <option key={country.code} value={country.code}>
-                {country.name}
-              </option>
-            ))}
-          </select>
-        </motion.label>
+            onChange={setChosen}
+            options={abroad.map((country) => ({ value: country.code, label: country.name }))}
+          />
+        </motion.div>
       )}
 
       <motion.div {...reveal.rise(2 * stagger.base)}>

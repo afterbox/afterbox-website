@@ -10,7 +10,7 @@ import { Link } from "@/components/ui/Links";
 import Monogram from "@/components/ui/onboarding/Monogram";
 import Spinner from "@/components/ui/Spinner";
 import TextField from "@/components/ui/TextField";
-import { BackLink, PageTitle, SectionLabel, Square, Toggle } from "@/components/ui/dashboard/bits";
+import { BackLink, PageTitle, Pill, SectionLabel, Square, Toggle } from "@/components/ui/dashboard/bits";
 import { DateField, FormNote } from "@/components/ui/dashboard/fields";
 import { useLayers } from "@/components/ui/dashboard/Layer";
 import Page from "@/components/ui/dashboard/Page";
@@ -25,7 +25,7 @@ import { pressable, transition } from "@/lib/motion";
 import { PASSKEY_ERROR, PasskeyError } from "@/lib/security/keychain";
 import { useAccount, useExportAccount, useUpdateAccount } from "@/store/account";
 import { useBank, useBanks, useRenewBank } from "@/store/banks";
-import { useMe } from "@/store/me";
+import { useIsDemo, useMe } from "@/store/me";
 import { useNotifications, useUpdateNotifications } from "@/store/notifications";
 import { useSignOut } from "@/store/sessions";
 
@@ -110,7 +110,10 @@ function Settings({ banks }: { banks: Bank[] }) {
         Add another bank
       </Link>
 
-      <SectionLabel className="mt-10 mb-1">ACCOUNT</SectionLabel>
+      <SectionLabel className="mt-10 mb-1 flex items-center gap-2">
+        ACCOUNT
+        {me.data?.demo && <Pill tone="demo" className="h-[22px] px-2 tracking-normal normal-case" />}
+      </SectionLabel>
       <div className="border-t border-line">
         <ListLink href="/home/settings/security" name="settings-security" icon={<ShieldCheckIcon size={18} />} sub={accessLine}>
           Devices and access
@@ -431,6 +434,7 @@ export function PrivacyScreen() {
 const problems: Record<string, string> = {
   already: "This bank is already connected.",
   limit: "Your plan reads this bank once every 90 days.",
+  demoLimit: "You can read this bank again later.",
   failed: "That didn’t go through. Try again.",
 };
 
@@ -440,7 +444,10 @@ function BankView({ bank }: { bank: BankDetail }) {
   const { open } = useLayers();
   const renew = useRenewBank();
   const [renewed] = useState(params.get("renewed") === "1");
-  const [problem] = useState(params.get("problem"));
+  const demo = useIsDemo();
+  const [reported] = useState(params.get("problem"));
+  // Demo mode: no plan in the copy.
+  const problem = demo && reported === "limit" ? "demoLimit" : reported;
   const line = renewed ? { text: "Renewed", tone: "positive" as const } : bankLine(bank);
   const warn = line.tone === "warn" || line.tone === "alert";
 

@@ -12,7 +12,7 @@ import OnboardingCard from "@/components/ui/onboarding/OnboardingCard";
 import QuietLink from "@/components/ui/onboarding/QuietLink";
 import ScreenTitle, { ScreenLead } from "@/components/ui/onboarding/ScreenTitle";
 import Spinner from "@/components/ui/Spinner";
-import { errorCopy, isApiError } from "@/lib/api/errors";
+import { anyErrorCopy, errorCopy, isApiError, isDemoMode } from "@/lib/api/errors";
 import { formatDate } from "@/lib/dashboard/format";
 import { duration, stagger, transition } from "@/lib/motion";
 import { useLinkBank } from "@/store/banks";
@@ -23,6 +23,8 @@ const HANDOFF_DELAY = 800;
 const dots = [0.25, 0.5, 0.85];
 
 function problemCopy(error: unknown) {
+  // Demo mode: the limit without a plan.
+  if (isDemoMode()) return anyErrorCopy(error);
   if (isApiError(error) && error.code === "LIMIT_BANKS") {
     return error.details.rescanAfter
       ? `Your plan reads one bank. You can read it again from ${formatDate(error.details.rescanAfter)}.`

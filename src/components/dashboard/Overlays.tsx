@@ -27,7 +27,7 @@ import { useDocumentPicker } from "@/components/ui/dashboard/home";
 import { DialogTitle, Overlay, PhoneSheet, Step, useLayers } from "@/components/ui/dashboard/Layer";
 import { Sk } from "@/components/ui/dashboard/Skeleton";
 import { useMobile } from "@/components/ui/dashboard/useMedia";
-import { useMe } from "@/store/me";
+import { useIsDemo, useMe } from "@/store/me";
 import { anyErrorCopy, isApiError } from "@/lib/api/errors";
 import type { CategoryId, DetailField, Frequency, Item, Relation, ScanField } from "@/lib/api/types";
 import { categoryInfo, fieldLabels, frequencies, groupInfo, groupLabelFor, guessCategory, pickerOrder, relations } from "@/lib/categories";
@@ -849,6 +849,7 @@ function ScanOverlay() {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function InviteOverlay() {
+  const demo = useIsDemo();
   const { close, param } = useLayers();
   const people = usePeople();
   const account = useAccount();
@@ -937,7 +938,7 @@ function InviteOverlay() {
               Send invite
             </Button>
             <FormNote error={error ? failure(error) : null} />
-            {!replacing && (
+            {!replacing && !demo && (
               <div className="mt-6 flex items-center gap-3 rounded-panel border border-line bg-ground px-4 py-3.5">
                 <PeopleIcon size={18} className="flex-none text-ink-soft" />
                 <p className="flex-1 text-[13px]/[1.45] text-ink-soft">More people, and sharing now, come with the Family plan.</p>

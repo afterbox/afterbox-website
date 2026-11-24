@@ -7,6 +7,7 @@ import { collectApproval, requestApproval } from "@/lib/security/keychain";
 import { deviceKeys } from "../devices";
 import { securityKeys } from "../security";
 import { unlockKeys } from "../unlock";
+import { signInMutation } from "../queryClient";
 
 export const approvalKeys = {
   one: (id: string) => ["approvals", id] as const,
@@ -25,13 +26,14 @@ export function useApproval(id: string | null, options: { poll?: boolean } = {})
 
 /** New device (06): a passkey on this session if needed, a relay key pair, then the request. Resolves the approval id. */
 export function useRequestApproval() {
-  return useMutation({ mutationFn: () => requestApproval() });
+  return useMutation({ ...signInMutation, mutationFn: () => requestApproval() });
 }
 
 /** New device, once approved: collect the sealed blob, open it, keep it, unlock. */
 export function useCollectApproval() {
   const client = useQueryClient();
   return useMutation({
+    ...signInMutation,
     mutationFn: ({ approvalId, userId }: { approvalId: string; userId: string }) => collectApproval(approvalId, userId),
     onSuccess: (_, { userId }) => {
       client.setQueryData(unlockKeys.device(userId), true);

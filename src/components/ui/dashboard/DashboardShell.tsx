@@ -12,7 +12,7 @@ import OfflineNotice from "@/components/ui/OfflineNotice";
 import { rememberAfterSignIn, takeAfterSignIn } from "@/lib/afterSignIn";
 import { cssMotionVars, distance, pressable, transition } from "@/lib/motion";
 import { useMotionTokens } from "@/lib/useMotionTokens";
-import { useMe } from "@/store/me";
+import { useIsDemo, useMe } from "@/store/me";
 import SessionBridge from "@/store/SessionBridge";
 import { useRecordAccess } from "@/store/unlock";
 import { pageCover, useLayerHistory, useLayers } from "./Layer";
@@ -41,6 +41,18 @@ function useInitials() {
   return useMe().data?.initials ?? "";
 }
 
+/** Demo mode's badge on the account avatar: a small "Demo" tag under the initials. */
+function DemoTag({ className = "" }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full bg-ink-deep px-1.5 py-px text-[9px]/[1.4] font-semibold tracking-[0.02em] text-on-night ring-2 ring-card ${className}`}
+    >
+      Demo
+    </span>
+  );
+}
+
 /* Desktop and tablet: the icon rail. From 1024px it widens over the page on hover or focus. */
 
 const railLabel =
@@ -49,6 +61,7 @@ const railLabel =
 function Rail() {
   const section = sectionOf(usePathname());
   const initials = useInitials();
+  const demo = useIsDemo();
   return (
     <nav
       aria-label="Main"
@@ -80,15 +93,16 @@ function Rail() {
         href="/home/settings"
         name="rail-settings"
         aria-current={section === "settings" ? "page" : undefined}
-        aria-label="Settings"
+        aria-label={demo ? "Settings, demo account" : "Settings"}
         className="mt-auto flex h-11 flex-none items-center gap-3 rounded-full px-0.5 whitespace-nowrap"
       >
         <span
-          className={`flex size-10 flex-none items-center justify-center rounded-full text-[13px] font-semibold transition-shadow duration-[var(--motion-fast)] ${
+          className={`relative flex size-10 flex-none items-center justify-center rounded-full text-[13px] font-semibold transition-shadow duration-[var(--motion-fast)] ${
             section === "settings" ? "bg-mist text-ink-deep ring-2 ring-ink-deep" : "bg-mist text-ink-deep"
           }`}
         >
           {initials}
+          {demo && <DemoTag className="-bottom-1.5" />}
         </span>
         <span className={`text-[15px] font-semibold text-ink ${railLabel}`}>Settings</span>
       </Link>
@@ -101,15 +115,17 @@ function Rail() {
 
 function Avatar() {
   const initials = useInitials();
+  const demo = useIsDemo();
   return (
     <Link
       href="/home/settings"
       name="topbar-settings"
-      aria-label="Settings"
+      aria-label={demo ? "Settings, demo account" : "Settings"}
       className="-m-[5px] flex size-11 items-center justify-center rounded-full"
     >
-      <span className="flex size-[34px] items-center justify-center rounded-full bg-mist text-[11px] font-semibold text-ink-deep">
+      <span className="relative flex size-[34px] items-center justify-center rounded-full bg-mist text-[11px] font-semibold text-ink-deep">
         {initials}
+        {demo && <DemoTag className="-bottom-2" />}
       </span>
     </Link>
   );

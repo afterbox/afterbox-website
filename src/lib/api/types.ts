@@ -72,6 +72,8 @@ export type Me = {
   hasBackupCode: boolean;
   homeCurrency: string;
   trustedPerson: TrustedSummary;
+  /** The backend's demo mode: everyone is on Standard, plans are off. Absent otherwise. */
+  demo?: boolean;
 };
 
 /* Auth */
@@ -414,6 +416,8 @@ export type RealtimeEvent =
   | { name: "help.requested"; data: { requestId: string } }
   | { name: "help.alert"; data: { requestId: string } }
   | { name: "help.cancelled"; data: { requestId: string } }
-  | { name: "plan.changed"; data: { plan: Plan } };
+  | { name: "plan.changed"; data: { plan: Plan } }
+  /** The fallback only: the in-request re-seal at keys setup failed and the worker finished it. */
+  | { name: "record.updated"; data: { reason: "resealed" } };
 
 export type RealtimeName = RealtimeEvent["name"];

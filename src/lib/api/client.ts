@@ -1,13 +1,20 @@
-import { ApiError, UnlockRequiredError, type ErrorCode, type ErrorDetails } from "./errors";
+import { onlineManager } from "@tanstack/react-query";
+import { ApiError, NETWORK_MESSAGES, UnlockRequiredError, type ErrorCode, type ErrorDetails } from "./errors";
 
 /**
  * The one API client. Screens never call fetch: they use the hooks in src/store, which call this.
  * - credentials: "include" (HttpOnly cookies; the frontend never reads a token)
  * - X-Afterbox: 1 on every non-GET (CSRF). No other custom headers: CORS allows only that and Content-Type.
- * - 401: one refresh at a time across tabs (Web Locks), then the request is retried once.
+ * - 401: one refresh at a time across tabs (Web Locks), then the request is retried once. Only a 401 from the
+ *   refresh means signed out. A refresh with no answer (a fetch error, a timeout) or a 5xx keeps the session: the
+ *   request fails with "Can't reach afterbox", and the refresh is tried again on the next request that needs it, or
+ *   as soon as the connection comes back.
  * - 423 UNLOCK_REQUIRED: a silent re-unlock with this device's stored blob, then one retry.
  * - 403 STEP_UP_REQUIRED: the passkey confirmation, then one retry.
  * - 429: a short retryAfter on a GET is waited out once; otherwise the error carries retryAfter.
+ * - A fetch that throws (no answer, a timeout, a blocked preflight) is NETWORK. It says "offline" only while the
+ *   browser says so (TanStack's onlineManager, fed by the online/offline events); otherwise "Can't reach afterbox".
+ *   It never marks the app offline itself. Any answer at all marks it online again (clearing the offline notice).
  */
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
@@ -39,6 +46,8 @@ export type RequestOptions = {
   raw?: boolean;
   /** The browser's HTTP cache mode (`no-store` for a request that must reach the server). */
   cache?: RequestCache;
+  /** Give up after this long (a NETWORK error). GETs default to the GET timeout; other requests wait. */
+  timeoutMs?: number;
 };
 
 type Recovery = "refresh" | "unlock" | "stepUp" | "wait";
@@ -86,39 +95,97 @@ async function send(method: string, path: string, options: RequestOptions): Prom
     body = JSON.stringify(options.body);
   }
   const canCombine = typeof AbortSignal.any === "function" && typeof AbortSignal.timeout === "function";
-  const timeout = method === "GET" && !options.raw && canCombine ? AbortSignal.timeout(GET_TIMEOUT_MS) : undefined;
+  const timeoutMs = options.timeoutMs ?? (method === "GET" && !options.raw ? GET_TIMEOUT_MS : undefined);
+  const timeout = timeoutMs && canCombine ? AbortSignal.timeout(timeoutMs) : undefined;
   const signal = timeout && options.signal ? AbortSignal.any([options.signal, timeout]) : (timeout ?? options.signal);
+  let response: Response;
   try {
-    return await fetch(`${API_URL}${path}`, { method, headers, body, credentials: "include", signal, cache: options.cache });
+    response = await fetch(`${API_URL}${path}`, { method, headers, body, credentials: "include", signal, cache: options.cache });
   } catch (error) {
     if (options.signal?.aborted) throw error;
-    throw new ApiError(0, "NETWORK", "You’re offline.");
+    const offline = !onlineManager.isOnline();
+    throw new ApiError(0, "NETWORK", offline ? NETWORK_MESSAGES.offline : NETWORK_MESSAGES.unreachable, { offline });
   }
+  // The server answered, so we're online whatever the browser last said.
+  if (!onlineManager.isOnline()) onlineManager.setOnline(true);
+  return response;
 }
 
-let refreshing: Promise<boolean> | null = null;
+type RefreshOutcome = { kind: "refreshed" } | { kind: "signed-out" } | { kind: "failed"; error: ApiError };
+
+let refreshing: Promise<RefreshOutcome> | null = null;
+let retryWhenOnline: (() => void) | null = null;
+
+/** No answer, or a 5xx: the session may well be fine, afterbox just couldn't be reached. */
+function unreachable(status = 0): ApiError {
+  const offline = !onlineManager.isOnline();
+  return status === 0
+    ? new ApiError(0, "NETWORK", offline ? NETWORK_MESSAGES.offline : NETWORK_MESSAGES.unreachable, { offline })
+    : new ApiError(status, "SERVICE_UNAVAILABLE", NETWORK_MESSAGES.unreachable);
+}
+
+/** After a refresh that couldn't reach afterbox: try again once the connection comes back (one listener at a time). */
+function refreshWhenOnline() {
+  if (retryWhenOnline) return;
+  const unsubscribe = onlineManager.subscribe((online) => {
+    if (!online) return;
+    stop();
+    void refresh();
+  });
+  const stop = () => {
+    unsubscribe();
+    retryWhenOnline = null;
+  };
+  retryWhenOnline = stop;
+}
 
 /** One refresh at a time: shared within the tab, serialised across tabs by the "ab-refresh" lock. */
-export function refreshSession(): Promise<boolean> {
+function refresh(): Promise<RefreshOutcome> {
   if (!refreshing) {
-    const run = async () => {
-      const response = await send("POST", "/v1/auth/refresh", {});
-      // Read the (small) body: an unread one keeps the request open in Chromium, holding one of the host's connections.
-      await response.text().catch(() => "");
-      return response.ok;
+    const run = async (): Promise<RefreshOutcome> => {
+      let response: Response;
+      try {
+        response = await send("POST", "/v1/auth/refresh", { timeoutMs: GET_TIMEOUT_MS });
+      } catch (error) {
+        return { kind: "failed", error: error instanceof ApiError ? error : unreachable() };
+      }
+      if (response.ok) {
+        // Read the (small) body: an unread one keeps the request open in Chromium, holding one of the host's connections.
+        await response.text().catch(() => "");
+        return { kind: "refreshed" };
+      }
+      if (response.status === 401) {
+        await response.text().catch(() => "");
+        return { kind: "signed-out" };
+      }
+      if (response.status >= 500) {
+        await response.text().catch(() => "");
+        return { kind: "failed", error: unreachable(response.status) };
+      }
+      // Anything else (a 429, say) isn't "signed out" either: the request fails with it and the session stays.
+      return { kind: "failed", error: await toApiError(response) };
     };
     refreshing = (async () => {
       try {
         const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
-        return locks?.request ? await locks.request("ab-refresh", run) : await run();
+        const outcome = locks?.request ? await locks.request("ab-refresh", run) : await run();
+        if (outcome.kind === "failed") refreshWhenOnline();
+        else retryWhenOnline?.();
+        return outcome;
       } catch {
-        return false;
+        refreshWhenOnline();
+        return { kind: "failed" as const, error: unreachable() };
       } finally {
         refreshing = null;
       }
     })();
   }
   return refreshing;
+}
+
+/** Refreshes the session: true when it was refreshed (false when signed out or afterbox couldn't be reached). */
+export async function refreshSession(): Promise<boolean> {
+  return (await refresh()).kind === "refreshed";
 }
 
 async function request<T>(method: string, path: string, options: RequestOptions, used: Set<Recovery>): Promise<T> {
@@ -134,9 +201,14 @@ async function request<T>(method: string, path: string, options: RequestOptions,
   const retry = (recovery: Recovery) => request<T>(method, path, options, new Set([...used, recovery]));
 
   if (error.status === 401 && !path.startsWith("/v1/auth/") && !used.has("refresh")) {
-    if (await refreshSession()) return retry("refresh");
-    handlers.signedOut?.();
-    throw error;
+    const outcome = await refresh();
+    if (outcome.kind === "refreshed") return retry("refresh");
+    if (outcome.kind === "signed-out") {
+      handlers.signedOut?.();
+      throw error;
+    }
+    // Not signed out: keep the session and say afterbox couldn't be reached. The next request refreshes again.
+    throw outcome.error;
   }
 
   if (error.status === 423 && !used.has("unlock")) {
