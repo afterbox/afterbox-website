@@ -6,7 +6,7 @@ import { UnlockRequiredError } from "@/lib/api/errors";
 import type { Me, UnlockOptions } from "@/lib/api/types";
 import { findOpenRequest, hasDeviceBlob, unlockWithPasskey } from "@/lib/security/keychain";
 import { metaKeys, useCategories } from "../meta";
-import { staleTimes } from "../queryClient";
+import { signInMutation, staleTimes } from "../queryClient";
 
 export const unlockKeys = {
   options: ["unlock", "options"] as const,
@@ -59,6 +59,7 @@ export function useRecordAccess(me: Me | undefined): RecordAccess {
 export function useUnlockWithPasskey() {
   const client = useQueryClient();
   return useMutation({
+    ...signInMutation,
     mutationFn: (me: Pick<Me, "id">) => unlockWithPasskey(me.id),
     onSuccess: () => {
       client.resetQueries({ queryKey: metaKeys.categories });

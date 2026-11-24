@@ -21,10 +21,6 @@ export function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
 }
 
-export function isOffline() {
-  return typeof navigator !== "undefined" && !navigator.onLine;
-}
-
 export function authHref(mode: AuthMode, email: string) {
   return email ? `/${mode}?email=${encodeURIComponent(email)}` : `/${mode}`;
 }

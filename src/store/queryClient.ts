@@ -30,6 +30,13 @@ export function shouldRetry(failureCount: number, error: unknown) {
   return failureCount < 2;
 }
 
+/**
+ * Signing in, passkeys, unlocking and locking the record are never paused by the online state: they run, and if the
+ * network really is down they fail with a clear error the screen shows. (TanStack's onlineManager is left at its
+ * default: the browser's online/offline events only.)
+ */
+export const signInMutation = { networkMode: "always" } as const;
+
 export const staleTimes = {
   live: 0,
   short: 15_000,
@@ -54,7 +61,7 @@ export function makeQueryClient() {
       },
       mutations: {
         retry: false,
-        // Paused while offline and sent when the connection comes back.
+        // Paused only while the browser says it's offline, and sent when it's back. Sign-in ones: signInMutation.
         networkMode: "online",
       },
     },

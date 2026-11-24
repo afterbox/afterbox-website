@@ -40,6 +40,8 @@ export type ErrorDetails = {
   maxBytes?: number;
   service?: string;
   collectableAt?: string;
+  /** NETWORK only: the browser said it was offline when the request failed. */
+  offline?: boolean;
   [key: string]: unknown;
 };
 
@@ -79,6 +81,15 @@ export const hasCode = (error: unknown, ...codes: ErrorCode[]) => isApiError(err
 
 const GENERIC = "Something went wrong. Try again.";
 
+/** A request that got no answer: offline only when the browser says so, otherwise afterbox couldn't be reached. */
+export const NETWORK_MESSAGES = {
+  offline: "You’re offline. Check your connection and try again.",
+  unreachable: "Can’t reach afterbox right now. Try again in a moment.",
+} as const;
+
+/** NETWORK while the browser said it was offline (never from a failed request alone). */
+export const isOfflineError = (error: unknown) => hasCode(error, "NETWORK") && (error as ApiError).details.offline === true;
+
 /** "Try again in 3 minutes." from seconds. */
 export function retryAfterText(seconds: number | null) {
   if (seconds === null) return "Try again soon.";
@@ -105,7 +116,9 @@ export function errorCopy(error: unknown): string {
     case "SCAN_FAILED":
       return error.status === 504 ? "That took too long. Try again." : "We couldn’t read this one. Type it in instead?";
     case "SERVICE_UNAVAILABLE":
-      return "Something’s not answering. Try again in a minute.";
+      return NETWORK_MESSAGES.unreachable;
+    case "INTERNAL":
+      return error.status >= 500 ? NETWORK_MESSAGES.unreachable : GENERIC;
     case "KEYS_REQUIRED":
       return "Lock your record first, then accept.";
     case "CONFLICT":
@@ -114,11 +127,38 @@ export function errorCopy(error: unknown): string {
     case "NOT_FOUND":
       return "This link has expired or was already used.";
     case "NETWORK":
-      return "You’re offline. Check your connection and try again.";
+      return error.details.offline ? NETWORK_MESSAGES.offline : NETWORK_MESSAGES.unreachable;
     case "VALIDATION":
       return error.details.issues?.[0]?.message ?? error.message ?? GENERIC;
     default:
       return GENERIC;
+  }
+}
+
+/**
+ * Demo mode (GET /v1/me `demo: true`): every member is on Standard and plans are off, so no copy mentions a plan or
+ * an upgrade. Set from /v1/me as it loads (src/store/me).
+ */
+let demoMode = false;
+export function setDemoMode(on: boolean) {
+  demoMode = on;
+}
+export const isDemoMode = () => demoMode;
+
+/** A limit said without a plan (demo mode). */
+function demoLimitCopy(error: ApiError): string {
+  const limit = error.details.limit;
+  switch (error.code) {
+    case "LIMIT_ITEMS":
+      return limit ? `Your record holds up to ${limit} things.` : "Your record is full.";
+    case "LIMIT_DOCUMENTS":
+      return limit ? `You can read ${limit} documents a month.` : "You’ve read all the documents you can this month.";
+    case "LIMIT_TRUSTED":
+      return limit ? `You can choose up to ${limit} trusted people.` : "You can’t add another trusted person.";
+    case "LIMIT_BANKS":
+      return error.details.rescanAfter ? "You can read this bank again later." : limit ? `You can connect up to ${limit} banks.` : "You can’t connect another bank.";
+    default:
+      return "That isn’t available in the demo.";
   }
 }
 
@@ -128,6 +168,7 @@ export function errorCopy(error: unknown): string {
  */
 export function limitCopy(error: unknown): string | null {
   if (!isApiError(error) || error.status !== 402) return null;
+  if (demoMode) return demoLimitCopy(error);
   const limit = error.details.limit;
   switch (error.code) {
     case "LIMIT_ITEMS":

@@ -6,7 +6,7 @@ import type { RealtimeEvent, RealtimeName } from "@/lib/api/types";
 import { approvalKeys } from "../approvals";
 import { bankKeys } from "../banks";
 import { helpKeys } from "../help";
-import { invalidateFound, invalidateRecord, recordKeys } from "../queryKeys";
+import { invalidateAfterReseal, invalidateFound, invalidateRecord, recordKeys } from "../queryKeys";
 import { meKeys } from "../me";
 import { securityKeys } from "../security";
 
@@ -93,6 +93,9 @@ export function invalidateFor(client: QueryClient, event: RealtimeEvent) {
       client.invalidateQueries({ queryKey: meKeys.all });
       client.invalidateQueries({ queryKey: recordKeys.home }, { cancelRefetch: false });
       client.invalidateQueries({ queryKey: bankKeys.all });
+      return;
+    case "record.updated":
+      void invalidateAfterReseal(client);
       return;
   }
 }

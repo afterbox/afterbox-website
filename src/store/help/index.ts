@@ -5,6 +5,7 @@ import { api, seg } from "@/lib/api/client";
 import type { HelpRequest } from "@/lib/api/types";
 import { collectHelp, dropRelay, requestHelp } from "@/lib/security/keychain";
 import { unlockKeys } from "../unlock";
+import { signInMutation } from "../queryClient";
 
 export const helpKeys = {
   one: (id: string) => ["help", id] as const,
@@ -27,13 +28,14 @@ export function useHelpRequest(id: string | null, options: { poll?: boolean } = 
 
 /** New device (10): passkey on this session, a relay key pair kept in the vault, then the request. Resolves the id. */
 export function useRequestHelp() {
-  return useMutation({ mutationFn: () => requestHelp() });
+  return useMutation({ ...signInMutation, mutationFn: () => requestHelp() });
 }
 
 /** New device, after the cooling-off hour: collect, open, keep the blob, unlock. */
 export function useCollectHelp() {
   const client = useQueryClient();
   return useMutation({
+    ...signInMutation,
     mutationFn: ({ requestId, userId }: { requestId: string; userId: string }) => collectHelp(requestId, userId),
     onSuccess: (_, { userId }) => {
       client.setQueryData(unlockKeys.device(userId), true);

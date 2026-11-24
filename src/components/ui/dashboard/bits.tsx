@@ -90,6 +90,7 @@ const pillTones = {
   soonGround: "bg-ground text-ink-soft",
   soonCard: "bg-card text-ink-soft",
   added: "bg-positive/8 text-positive",
+  demo: "bg-mist text-ink-deep",
 } as const;
 
 export type PillTone = keyof typeof pillTones;
@@ -100,6 +101,7 @@ const pillText: Partial<Record<PillTone, string>> = {
   new: "New",
   invited: "Invited",
   accepted: "Accepted",
+  demo: "Demo",
 };
 
 /** Status in a word (never colour alone). Changing status cross-fades. */

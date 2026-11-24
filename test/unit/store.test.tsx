@@ -414,6 +414,12 @@ describe("realtime: each event invalidates exactly what it changes", () => {
     }
   });
 
+  it("record.updated (the re-seal fallback) refreshes Home, the record, the finds and the found screens", () => {
+    expect(invalidated({ name: "record.updated", data: { reason: "resealed" } })).toEqual(
+      expect.arrayContaining([key(recordKeys.home), key(recordKeys.record), key(recordKeys.items), key(recordKeys.finds), key(recordKeys.found), key(recordKeys.flags)]),
+    );
+  });
+
   it("plan.changed refreshes /me, Home and the banks (not billing: that's the owner's)", () => {
     expect(invalidated({ name: "plan.changed", data: { plan: "standard" } })).toEqual([key(meKeys.all), key(recordKeys.home), key(recordKeys.banks)]);
   });

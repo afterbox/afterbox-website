@@ -17,6 +17,7 @@ import { useMotionTokens } from "@/lib/useMotionTokens";
 import { canMarkSeen, useMarkEventSeen } from "@/store/activity";
 import { useStartScan } from "@/store/documents";
 import { useHome } from "@/store/home";
+import { useIsDemo } from "@/store/me";
 
 /** "Checked with Monzo and HSBC 2 hours ago", from Home's own `banks` (no extra request). */
 function SafeLine({ banks }: { banks: HomeBank[] }) {
@@ -41,6 +42,7 @@ function SafeLine({ banks }: { banks: HomeBank[] }) {
 
 function HomeView({ home }: { home: Home }) {
   const { open } = useLayers();
+  const demo = useIsDemo();
   const { move } = useMotionTokens();
   const markSeen = useMarkEventSeen();
   const documentFor = useRef<string | null>(null);
@@ -92,7 +94,7 @@ function HomeView({ home }: { home: Home }) {
           )}
           {home.waiting > 0 && (
             <motion.p {...after(0)} className={`order-2 text-[13px] text-ink-soft ${hasBanner ? "mt-2.5" : "mt-6"}`}>
-              {home.waiting} more waiting. Your plan has room for what’s in your record now.
+              {home.waiting} more waiting.{demo ? "" : " Your plan has room for what’s in your record now."}
             </motion.p>
           )}
 

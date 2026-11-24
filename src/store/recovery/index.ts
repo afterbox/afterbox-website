@@ -7,6 +7,7 @@ import { saveBackupCode, unlockWithCode } from "@/lib/security/keychain";
 import { meKeys } from "../me";
 import { securityKeys } from "../security";
 import { unlockKeys } from "../unlock";
+import { signInMutation } from "../queryClient";
 
 function backupSaved(client: ReturnType<typeof useQueryClient>, saved: boolean) {
   client.setQueryData<Me>(meKeys.all, (me) => (me ? { ...me, hasBackupCode: saved } : me));
@@ -35,6 +36,7 @@ export function useRemoveBackupCode() {
 export function useUnlockWithCode() {
   const client = useQueryClient();
   return useMutation({
+    ...signInMutation,
     mutationFn: ({ code, userId }: { code: string; userId: string }) => unlockWithCode(code, userId),
     onSuccess: (ok, { userId }) => {
       if (!ok) return;

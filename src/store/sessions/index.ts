@@ -4,6 +4,7 @@ import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-q
 import { api } from "@/lib/api/client";
 import { forgetRegistration, setCurrentUser } from "@/lib/security/keychain";
 import { disconnectRealtime } from "../realtime/client";
+import { signInMutation } from "../queryClient";
 
 /** Clears everything held in memory for the member: the query cache and the realtime connection. */
 export function endLocalSession(client: QueryClient) {
@@ -29,6 +30,7 @@ export function setSignedOutOnPurpose(value: boolean) {
 export function useSignOut() {
   const client = useQueryClient();
   return useMutation({
+    ...signInMutation,
     mutationFn: () => {
       setSignedOutOnPurpose(true);
       return api.post("/v1/auth/logout");

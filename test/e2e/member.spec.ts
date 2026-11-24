@@ -67,12 +67,15 @@ test("sign up → passkey → connect a bank via Tink → reading progress → f
   await expect(page).toHaveURL(/\/home$/, { timeout: 30_000 });
   expect((await apiFromPage<{ keysReady: boolean }>(page, "/v1/me")).body.keysReady).toBe(true);
 
-  // The accepted finds become items (a job after locking): the Record screen lists them.
-  await expect(async () => {
-    const record = (await apiFromPage<{ all: number }>(page, "/v1/record")).body;
-    expect(record.all).toBeGreaterThan(0);
-  }).toPass({ timeout: 60_000, intervals: [2000] });
-  const record = (await apiFromPage<{ all: number; sections: { category: { label: string } }[] }>(page, "/v1/record")).body;
+  // The accepted finds are items as soon as setup answers (the backend turns them into items inside the lock
+  // request): no waiting, and Home shows them straight away, with no reload.
+  const record = (await apiFromPage<{ all: number; sections: { category: { id: string; label: string } }[] }>(page, "/v1/record")).body;
+  expect(record.all).toBeGreaterThan(0);
+  // (The count is a rolling number, its digits rendered twice inside: as in "home shows the finds", contain.)
+  await expect(page.getByTestId("home-count")).toContainText(String(record.all));
+  for (const section of record.sections) await expect(page.locator(`a[href="/home/record/${section.category.id}?from=home"]`).filter({ visible: true }).first()).toBeVisible();
+
+  // The Record screen lists them too.
   await page.goto("/home/record");
   await expect(page.getByRole("heading", { name: "Record" })).toBeVisible();
   await expect(page.getByRole("button", { name: `All ${record.all}` })).toBeVisible();
@@ -95,7 +98,8 @@ test("add and edit an item", async () => {
   await page.getByRole("button", { name: /Type it in/ }).click();
   await page.getByLabel("What is it?").fill("Workplace pension");
   await expect(page.getByText("Goes in")).toBeVisible();
-  await expect(page.getByText(/^Pensions/)).toBeVisible();
+  // In the overlay (the Record page behind it can have a Pensions section of its own).
+  await expect(page.getByRole("dialog").getByText(/^Pensions/)).toBeVisible();
   await page.getByLabel("Amount").fill("120");
   await page.getByRole("button", { name: "Add to my record" }).click();
   await expect(page.getByRole("heading", { name: "Saved to your record" })).toBeVisible();

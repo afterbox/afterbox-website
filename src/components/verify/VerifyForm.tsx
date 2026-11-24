@@ -12,9 +12,9 @@ import BrandMark from "@/components/ui/BrandMark";
 import FormMessage, { Reveal } from "@/components/ui/FormMessage";
 import { PencilIcon } from "@/components/ui/icons";
 import { Link } from "@/components/ui/Links";
-import { errorCopy, isApiError } from "@/lib/api/errors";
+import { errorCopy, isApiError, isOfflineError } from "@/lib/api/errors";
 import { safePath, takeAfterSignIn, withNext } from "@/lib/afterSignIn";
-import { authHref, clock, isOffline, readMode, timings, type AuthMode } from "@/lib/auth";
+import { authHref, clock, readMode, timings, type AuthMode } from "@/lib/auth";
 import { FLOW_CARD, transition } from "@/lib/motion";
 import { useStartEmail, useVerifyCode } from "@/store/auth";
 
@@ -72,10 +72,6 @@ export function VerifyScreen({ email, from, after = null }: VerifyScreenProps) {
 
   function check(value: string) {
     if (verify.isPending) return;
-    if (isOffline()) {
-      setStatus("offline");
-      return;
-    }
     setStatus("checking");
     verify.mutate(
       { email, code: value },
@@ -105,7 +101,7 @@ export function VerifyScreen({ email, from, after = null }: VerifyScreenProps) {
             inputRef.current?.focus();
             return;
           }
-          if (isApiError(error) && error.code === "NETWORK") {
+          if (isOfflineError(error)) {
             setStatus("offline");
             return;
           }
